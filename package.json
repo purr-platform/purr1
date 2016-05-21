@@ -1,0 +1,18 @@
+{
+  "name": "caneles",
+  "dependencies": {
+    "babel-generator": "^6.9.0",
+    "babel-types": "^6.9.0",
+    "folktale": "^2.0.0-alpha1",
+    "refinable": "^1.0.2",
+    "resolve": "^1.1.7"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.9.0",
+    "babel-eslint": "^6.0.4",
+    "babel-preset-es2015": "^6.9.0",
+    "eslint": "^2.10.2",
+    "eslint-config-origamitower": "^1.2.0",
+    "ometajs": "^4.0.0"
+  }
+}
