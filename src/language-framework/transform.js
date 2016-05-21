@@ -201,9 +201,13 @@ function transformSwitch(expression, cases, binding) {
           ),
           _if(
             binary(
-              '===',
-              member(newId, id('length')),
-              number(parameters.length)
+              '&&',
+              newId,
+              binary(
+                '===',
+                member(newId, id('length')),
+                number(parameters.length)
+              )
             ),
             block(parameters.reduceRight((body, node, index) => {
               const pid = id(binding.free('$ref'));
