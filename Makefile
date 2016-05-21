@@ -3,6 +3,7 @@
 bin    := $(shell npm bin)
 babel  := $(bin)/babel
 eslint := $(bin)/eslint
+ometa  := $(bin)/ometajs2js
 
 # -- [ TASKS ] ---------------------------------------------------------
 help:
@@ -18,6 +19,8 @@ help:
 
 compile: $(SRC)
 	$(babel) src --source-map inline --out-dir lib
+	$(babel) runtime/src --source-map inline --out-dir runtime/lib
+	$(ometa) --beautify < languages/caneles/parser.ometajs > languages/caneles.js
 
 lint:
 	$(eslint) .

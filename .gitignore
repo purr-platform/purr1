@@ -1,2 +1,4 @@
 node_modules/
 /lib/
+/languages/*.js
+/runtime/lib/

@@ -14,19 +14,23 @@ const resolve = require('resolve');
 
 
 // --[ Constants ]-----------------------------------------------------
-const languageRegexp = /^\s*#language\s*([\.\-\/\w\d]+);\s*([\s\S]*)$/;
+const languageRegexp = /^\s*#language\s*([\.\-\/\w\d]+)(?:\r\n|\n)\s*([\s\S]*)$/;
 
 
 // --[ Parsing ]-------------------------------------------------------
 function parse(source, options) {
-  const [_, language, contents] = source.match(languageRegexp || '');
+  const [_, language, contents] = source.match(languageRegexp || '') || [];
   const root = options.requireRoot;
   if (!root) {
     throw new Error('No requireRoot provided');
   }
   if (language) {
     const parser = require(resolve.sync(language, { basedir: options.requireRoot }));
-    return parser(ast).parse(contents);
+    return {
+      language: language,
+      source: contents,
+      code: parser(ast).parse(contents)
+    };
   } else {
     throw new SyntaxError(`No language provided ${options.filename ? `for ${options.filename}` : ''}`);
   }

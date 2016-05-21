@@ -356,23 +356,23 @@ module.exports = function(ast) {
 
     BinaryInteger =
       seq('0b') Sign:s <BinDigit+>:n
-    -> ast.Integer(s + fixNumber(n)),
+    -> ast.Integer(s, fixNumber(n), 2),
 
     OctalInteger =
       seq('0o') Sign:s <OctalDigit+>:n
-    -> ast.Integer(s + fixNumber(n)),
+    -> ast.Integer(s, fixNumber(n), 8),
 
     HexadecimalInteger =
       seq('0x') Sign:s <HexDigit+>:n
-    -> ast.Integer(s + fixNumber(n)),
+    -> ast.Integer(s, fixNumber(n), 16),
 
     DecimalInteger =
       Sign:s <DecDigit+>:n
-    -> ast.Integer(s + fixNumber(n)),
+    -> ast.Integer(s, fixNumber(n), 10),
 
     DecimalNumber =
       Sign:s <DecDigit+>:i '.' <DecDigit+>:d Exponent?:e
-    -> ast.Decimal(s + fixNumber(i) + '.' + fixNumber(d) + (e || '')),
+    -> ast.Decimal(s, fixNumber(i) + '.' + fixNumber(d) + (e || '')),
 
     FloatNumber =
       Sign:s <DecDigit+>:i '.' <DecDigit+>:d Exponent?:e 'f'

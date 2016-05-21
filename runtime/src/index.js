@@ -22,15 +22,21 @@ function types(l, r) {
 
 // --[ Dependencies ]--------------------------------------------------
 const { BigDecimal, BigInteger } = require('bigdecimal');
-const { List:IVector, Map:IMap, Set:ISet } = require('Immutable');
+const { List:IVector, Map:IMap, Set:ISet } = require('immutable');
 const { data } = require('folktale/core/adt');
 
 
 // --[ Values ]--------------------------------------------------------
 function Integer(value) {
-  this.$value = BigInteger(value);
+  this.$value = value;
 }
 Integer.prototype = Object.create(null);
+Integer.prototype.toString = function() {
+  return this.$value.toString();
+}
+Integer.prototype.inspect = function() {
+  return `<Integer: ${this.$value.toString()}>`;
+}
 Integer.prototype.$type = 'integer';
 Integer.prototype.$equals = function(r) {
   return this.$value.equals(r.$value);
@@ -56,9 +62,15 @@ Integer.prototype.$pow = function(r) {
 }
 
 function Decimal(value) {
-  this.$value = BigDecimal(value);
+  this.$value = value;
 }
 Decimal.prototype = Object.create(null);
+Decimal.prototype.toString = function() {
+  return this.$value.toString();
+}
+Decimal.prototype.inspect = function() {
+  return `<Decimal: ${this.$value}>`;
+}
 Decimal.prototype.$type = 'decimal';
 Decimal.prototype.$equals = function(r) {
   return this.$value.equals(r.$value);
@@ -273,7 +285,7 @@ function pow(l, r) {
 }
 
 function not(l) {
-  switch getType(l) {
+  switch (getType(l)) {
     case 'boolean':
       return !l;
 
@@ -362,6 +374,10 @@ function extractorUnapply(tag, value) {
   }
 }
 
+function field(name, val) {
+  return { type: 'field', name: name, val: val }
+}
+
 function getter(name, fn) {
   return { type: 'getter', name: name, fn: fn }
 }
@@ -391,18 +407,24 @@ function object(properties) {
   }
 
   properties.forEach(p => {
-    let d = Object.getOwnPropertyDescriptor(result, p.name);
-    if (!d) {
-      d = {
-        writable: true,
-        configurable: true,
-        enumerable: false
-      }
-    };
+    let d = Object.getOwnPropertyDescriptor(result, p.name) || {};
     switch (p.type) {
-      case 'getter': d.get = p.fn;
-      case 'setter': d.set = p.fn;
-      case 'method': d.value = p.fn;
+      case 'getter':
+        d.get = p.fn;
+        break;
+
+      case 'setter':
+        d.set = p.fn;
+        break;
+
+      case 'field':
+        const val = p.val;
+        d.get = function(){ return val };
+        break;
+
+      case 'method':
+        d.value = p.fn;
+        break;
     }
     Object.defineProperty(result, p.name, d);
   });
@@ -459,11 +481,13 @@ module.exports = {
   greaterThan, greaterOrEqualTo, lessThan, lessOrEqualTo,
   plus, times, dividedBy: div, power: pow,
 
-  integer(v) {
-    return new Integer(v)
+  integer(s, v, r) {
+    return s === "+"   ?  new Integer(BigInteger(v, r))
+    :      /* else */     new Integer(BigInteger(v, r).negate());
   },
-  decimal(v) {
-    return new Decimal(v)
+  decimal(s, v) {
+    return s === "+"   ? new Decimal(BigDecimal(v))
+    :      /* else */    new Decimal(BigDecimal(v).negate());
   },
   vector(v) {
     return new IVector(v)
@@ -475,8 +499,8 @@ module.exports = {
     return new IMap(v)
   },
 
-  variant, extractorUnapply: unapply,
-  object, getter, setter, method,
+  variant, extractorUnapply,
+  object, field, getter, setter, method,
   "getField": doGet, "assignField": doSet, at,
 
   ok: Result.Ok, error: Result.Error, none,

@@ -40,9 +40,11 @@ const _return     = t.returnStatement;
 const _if         = t.ifStatement;
 const program     = t.program;
 const binary      = t.binaryExpression;
+const logical     = t.logicalExpression;
 const unary       = t.unaryExpression;
 
 const COMPUTED = true;
+const PREFIX   = true;
 
 
 // --[ Helpers ]-------------------------------------------------------
@@ -198,10 +200,10 @@ function transformSwitch(expression, cases, binding) {
         return [
           def('const',
             newId,
-            internal('extractorUnapply', [value])
+            internal('extractorUnapply', [transform(tag, binding), value])
           ),
           _if(
-            binary(
+            logical(
               '&&',
               newId,
               binary(
@@ -267,11 +269,11 @@ function transformSwitch(expression, cases, binding) {
 function transform(ast, bind, language) {
   return ast.cata({
     // ---[ Values ]---------------------------------------------------
-    Integer: ({ value }) =>
-      internal('integer', [string(value)]),
+    Integer: ({ sign, value, radix }) =>
+      internal('integer', [string(sign), string(value), number(radix)]),
 
-    Decimal: ({ value }) =>
-      internal('decimal', [string(value)]),
+    Decimal: ({ sign, value }) =>
+      internal('decimal', [string(sign), string(value)]),
 
     Float: ({ value }) =>
       number(value),
@@ -348,19 +350,12 @@ function transform(ast, bind, language) {
 
 
     // ---[ Sums and pattern matching ]--------------------------------
-    Union: ({ tag, variants }) => {
-      const ref = id(bind.free('$union'));
-      return asExpression([
-        def('const', ref, object([])),
-        ...(variants.map(v => transform(v, bind)(ref)).map(toStatement)),
-        _return(ref)
-      ]);
-    },
+    Union: ({ tag, variants }) =>
+      internal('object', [array(variants.map(x => transform(x, bind)))]),
 
-    Variant: ({ tag, fields }) => (ref) =>
-      assignment(
-        '=',
-        member(ref, transform(tag, bind)),
+    Variant: ({ tag, fields }) =>
+      internal('field', [
+        string(tag.name),
         internal('variant', [
           array(fields.map(k => string(k.name))),
           fn(
@@ -371,15 +366,11 @@ function transform(ast, bind, language) {
               _if(
                 unary(
                   '!',
-                  binary(
-                    'instanceof',
-                    id('this'),
-                    member(ref, transform(tag, bind))
-                  ),
-                  true
+                  binary('instanceof', id('this'), transform(tag, bind)),
+                  PREFIX
                 ),
                 _return(_new(
-                  member(ref, transform(tag, bind)),
+                  transform(tag, bind),
                   fields.map(k => transform(k, bind))
                 ))
               ),
@@ -391,7 +382,7 @@ function transform(ast, bind, language) {
             ])
           )
         ])
-      ),
+      ]),
 
     Switch: ({ expression, cases }) =>
       asExpression(
@@ -491,13 +482,13 @@ function transform(ast, bind, language) {
     Member: ({ object, property }) =>
       internal('getField', [
         transform(object, bind),
-        transform(property, bind)
+        string(property.name)
       ]),
 
     AssignMember: ({ object, property, value }) =>
       internal('assignField', [
         transform(object, bind),
-        transform(property, bind),
+        string(property.name),
         transform(value, bind)
       ]),
 

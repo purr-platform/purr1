@@ -15,13 +15,13 @@ const { data } = require('folktale/core/adt');
 const AST = data('caneles:ast', {
   // ---[ Values ]-----------------------------------------------------
   // 1_000
-  Integer(value) {
-    return { value }
+  Integer(sign, value, radix) {
+    return { sign, value, radix }
   },
 
   // 1_000.0
-  Decimal(value) {
-    return { value }
+  Decimal(sign, value) {
+    return { sign, value }
   },
 
   // 1_000.0f
