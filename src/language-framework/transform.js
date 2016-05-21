@@ -40,6 +40,7 @@ const _return     = t.returnStatement;
 const _if         = t.ifStatement;
 const program     = t.program;
 const binary      = t.binaryExpression;
+const unary       = t.unaryExpression;
 
 const COMPUTED = true;
 
@@ -367,6 +368,21 @@ function transform(ast, bind, language) {
             fields.map(k => transform(k, bind)),
             block([
               checkArguments(fields.length),
+              _if(
+                unary(
+                  '!',
+                  binary(
+                    'instanceof',
+                    id('this'),
+                    member(ref, transform(tag, bind))
+                  ),
+                  true
+                ),
+                _return(_new(
+                  member(ref, transform(tag, bind)),
+                  fields.map(k => transform(k, bind))
+                ))
+              ),
               ...fields.map(k => assignment(
                 '=',
                 member(id('this'), transform(k, bind)),

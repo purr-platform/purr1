@@ -3,7 +3,9 @@
   "dependencies": {
     "babel-generator": "^6.9.0",
     "babel-types": "^6.9.0",
+    "bigdecimal": "^0.6.1",
     "folktale": "^2.0.0-alpha1",
+    "immutable": "^3.8.1",
     "refinable": "^1.0.2",
     "resolve": "^1.1.7"
   },
