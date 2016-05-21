@@ -14,7 +14,7 @@ module.exports = function(ast) {
     'if', 'else',
     'switch', 'case', 'default',
     'true', 'false',
-    'const', 'let',
+    'mutable', 'let',
     'module', 'import', 'export', 'as', 'exposing',
     'try', 'throw',
     'union'
@@ -226,11 +226,11 @@ module.exports = function(ast) {
     -> ast.PatternWildcard(),
 
     PatternConstBinding =
-      kw('const') ws Identifier:i
+      kw('let') ws Identifier:i
     -> ast.PatternConstBinding(i),
 
     PatternLetBinding =
-      kw('let') ws Identifier:i
+      kw('mutable') ws Identifier:i
     -> ast.PatternLetBinding(i),
 
     PatternVariant =
@@ -449,11 +449,11 @@ module.exports = function(ast) {
 
     // ---[ Declarations ]---------------------------------------------
     ConstDeclaration =
-      kw('const') ws Identifier:i ws '=' ws Expression:e
+      kw('let') ws Identifier:i ws '=' ws Expression:e
     -> ast.Const(i, e),
 
     LetDeclaration =
-      kw('let') ws Identifier:i ws '=' ws Expression:e
+      kw('mutable') ws Identifier:i ws '=' ws Expression:e
     -> ast.Let(i, e),
 
 
