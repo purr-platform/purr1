@@ -498,7 +498,10 @@ function transform(ast, bind, language) {
           arrow(
             [id('$runtime')],
             block([
-              def('const', id('$caneles'), internal('selectRuntime', [string(language)])),
+              def('const',
+                id('$caneles'),
+                callMethod(id('$runtime'), id('selectRuntime'), [string(language)])
+              ),
               def('const', id('$exports'), internal('module', [])),
               toStatement(asExpression(
                 flatten(statements.map(s => transform(s, bind))).map(toStatement)
