@@ -23,7 +23,7 @@ const array       = t.arrayExpression;
 const assignment  = t.assignmentExpression;
 const spread      = t.spreadElement;
 const rest        = t.restElement;
-const arrow       = t.arrowFunctionExpression;
+const arrowFn     = t.arrowFunctionExpression;
 const fn          = t.functionExpression;
 const block       = t.blockStatement;
 const object      = t.objectExpression;
@@ -31,6 +31,7 @@ const property    = t.objectProperty;
 const method      = t.objectMethod;
 const declaration = t.variableDeclaration;
 const variable    = t.variableDeclarator;
+const _new        = t.newExpression;
 const _try        = t.tryStatement;
 const _catch      = t.catchClause;
 const _throw      = t.throwStatement;
@@ -73,6 +74,14 @@ function asExpression(statement) {
       block(statement)
     ),
     []
+  );
+}
+
+function arrow(parameters, body) {
+  return fn(
+    null,
+    parameters,
+    body
   );
 }
 
@@ -120,6 +129,28 @@ function operationName(name) {
     default:
       throw new SyntaxError(`Unknown operator ${name}`);
   }
+}
+
+function checkArguments(length) {
+  return _if(
+    binary(
+      '!==',
+      member(id('arguments'), id('length')),
+      number(length)
+    ),
+    _throw(
+      _new(
+        id('TypeError'),
+        [
+          binary(
+            '+',
+            string(`Wrong number of arguments. Expected ${length}, given `),
+            member(id('arguments'), id('length'))
+          )
+        ]
+      )
+    )
+  );
 }
 
 
@@ -301,7 +332,10 @@ function transform(ast, bind, language) {
     Function: ({ parameters, body }) =>
       arrow(
         parameters.map(x => transform(x, bind)),
-        block(body.map(s => toStatement(transform(s, bind))))
+        block([
+          checkArguments(parameters.length),
+          ...body.map(s => toStatement(transform(s, bind)))
+        ])
       ),
 
     Return: ({ expression }) =>
@@ -309,20 +343,32 @@ function transform(ast, bind, language) {
 
 
     // ---[ Sums and pattern matching ]--------------------------------
-    Union: ({ tag, variants }) =>
-      internal('union', [
-        transform(tag, bind),
-        object(variants.map(v => transform(v, bind)))
-      ]),
+    Union: ({ tag, variants }) => {
+      const ref = id(bind.free('$union'));
+      return asExpression([
+        def('const', ref, object([])),
+        ...(variants.map(v => transform(v, bind)(ref)).map(toStatement)),
+        _return(ref)
+      ]);
+    },
 
-    Variant: ({ tag, fields }) =>
-      method(
-        'method',
-        transform(tag, bind),
-        fields.map(x => transform(x, bind)),
-        block([
-          _return(
-            object(fields.map(name => property(transform(name, bind), transform(name, bind))))
+    Variant: ({ tag, fields }) => (ref) =>
+      assignment(
+        '=',
+        member(ref, transform(tag, bind)),
+        internal('variant', [
+          array(fields.map(k => string(k.name))),
+          fn(
+            transform(tag, bind),
+            fields.map(k => transform(k, bind)),
+            block([
+              checkArguments(fields.length),
+              ...fields.map(k => assignment(
+                '=',
+                member(id('this'), transform(k, bind)),
+                transform(k, bind)
+              )).map(toStatement)
+            ])
           )
         ])
       ),
@@ -383,6 +429,7 @@ function transform(ast, bind, language) {
             transform(name, bind),
             parameters.map(x => transform(x, bind)),
             block([
+              checkArguments(parameters.length),
               def('const', transform(receiver, bind), id('this')),
               ...body.map(x => transform(x, bind))
             ])
@@ -422,13 +469,13 @@ function transform(ast, bind, language) {
       ),
 
     Member: ({ object, property }) =>
-      internal('get', [
+      internal('getField', [
         transform(object, bind),
         transform(property, bind)
       ]),
 
     AssignMember: ({ object, property, value }) =>
-      internal('set', [
+      internal('assignField', [
         transform(object, bind),
         transform(property, bind),
         transform(value, bind)
@@ -509,7 +556,18 @@ function transform(ast, bind, language) {
               _return(id('$exports'))
             ])
           )
-        ))
+        )),
+
+        toStatement(
+          assignment(
+            '=',
+            member(
+              member(id('module'), id('exports')),
+              id('$canelesModule')
+            ),
+            bool(true)
+          )
+        )
       ]),
 
     Export: ({ name, value }) =>
@@ -526,6 +584,7 @@ function transform(ast, bind, language) {
           binding,
           internal('import', [
             id('require'),
+            transform(module, bind),
             parameters ?  array(parameters.map(x => transform(x, bind)))
             : /* else */  t.nullLiteral()
           ])
@@ -548,11 +607,13 @@ function transform(ast, bind, language) {
     },
 
     Module: ({ parameters, body }) =>
-      assignment('=',
-        member(id('$exports'), id('$default')),
+      _return(
         arrow(
           parameters.map(x => transform(x, bind)),
-          block(flatten(body.map(x => transform(x, bind))).map(toStatement))
+          block([
+            checkArguments(parameters.length),
+            ...flatten(body.map(x => transform(x, bind))).map(toStatement)
+          ])
         )
       )
   });
