@@ -178,11 +178,161 @@ features present in Core:
   - **First-class annotations**. 
     For documentation, testing, etc.
     
+  - **Arbitrary-precision arithmetic by default**.
+    To prevent surprises with floating point arithmetic, which **shouldn't** be the point of an introductory curricula. People can worry about floating point arithmetic much later in the course, when they start learning about optimisations.
+    
   - **Host Services**.
     For talking to host objects/etc safely.
   
 
-These semantics are introduced in the next sections.
+These semantics are introduced in the next sections. Note that all of the
+code provided here is just an example from the Core grammar, but languages
+may have different syntaxes while using the same underlying features.
 
 
+### A focus on data transformations
 
+Following How To Design Programs, the major focus of Canel.és is to support
+teaching programming-as-transforming-data-structures. With this, Canel.és needs
+to have strong support for rich data modelling and for picking apart pieces of a
+model, and putting it back together.
+
+This is primarily supported by Variants and Pattern Matching:
+
+```js
+// A list is either Empty, or a Sequence of a value and another list.
+let List = union {
+  Empty,
+  Sequence(value, rest)
+};
+let Empty    = List.Empty;
+let Sequence = List.Sequence;
+
+// Contents of lists may be summed by picking apart its pieces:
+let sum = (list) => switch list {
+  case .Empty:
+    return 0;
+    
+  case .Sequence(let value, rest: let rest):
+    return value + sum(rest);
+};
+```
+
+Here the following features are used:
+
+  - `LetBinding(name, value)`, which constructs an immutable binding with the given name. Bindings must be unique in the scope they appear.
+  - `Union(tag, variants)` and `Variant(tag, fields)`, which constructs open variants.
+  - `GetField(object, name)`, which retrieves **fields** from objects. There's a difference between a field and a computation that'll be explained shortly.
+  - `Function(parameters, body)`, which constructs a regular function. Functions don't return anything by default, but the `x => expr` form in Core is sugar for `x => { return expr }`.
+  - `Switch(expression, cases)`, which does pattern matching.
+  
+It's important to note the symmetry between defining data and working with data.
+The way one defines a List is the same way they operate on their parts, by
+describing which format they expect. This makes teaching structural recursion,
+as well as other data processing functions more natural.
+
+
+#### Arbitrary-precision arithmetic
+
+Most languages provide smaller numeric values for efficiency. Canel.és is
+not primarily concerned about the efficiency of programs written in it,
+so all of the default numeric types use arbitrary-precision arithmetic.
+This avoids having to explain floating points in at the beginning of
+a course, and also avoids the many surprises people may have working
+with floating point arithmetic for the first time.
+
+Both arbitrary-precision integers, and arbitrary-precision decimals
+are provided.
+
+
+#### Efficient immutable types
+
+Because data is the primary focus, it's important to provide data structures
+that support data transformations efficiently. Canel.és provides the following:
+
+  - **String**: immutable sequences of characters.
+  - **Vector**: immutable random-access vector.
+  - **Set**: immutable sets.
+  - **Map**: immutable maps.
+  - **Tuple**: immutable fixed-size sequence of values.
+  
+
+### Error handling
+
+To avoid issues with non-locality Canel.és makes all partial functions
+total by having them return a specialised `Either` type (which we call
+`Result`).
+
+```js
+const Result = union {
+  OK(value),
+  Error(error)
+}
+```
+
+Some functions still have side effects (including partiality), these
+effects are explicitly marked by suffixing the function with a `!`. So,
+for example, extracting the value from a result would be: `result.unwrap!()`.
+
+The IDE can highlight unsafe functions to call attention to them.
+
+Stack-unwinding errors are supported in an expression-local way:
+
+```
+let error = (reason) => throw reason;
+
+let result = try error("Catch me!");
+```
+
+Without the `try` expression, the whole process crashes. `try` only
+ever applies to a single expression and lifts its partial result
+into a Result structure.
+
+
+### Object Model
+
+Canel.és has a simple object model, which is a stripped down version
+of JavaScript's. Objects are made out of a `Parent` link, a set of
+`fields`, a collection of *internal state*, and a set of `methods`.
+
+The `Parent` link is what JavaScript calls `[[Prototype]]`. It
+describes which object provides the base structure for a particular
+object. An object may have at most one `Parent`.
+
+The *internal state* is specific to each object, and it's not
+carried over automatically when an object is inherited from.
+If one needs to carry internal state over, they need to do so
+explicitly by providing a new `.refine(properties)` service.
+
+The `fields` are a set of properties in an object that describes
+either a retrieval computation (`getter`), or an update computation
+(`setter`).
+
+The `methods` are a set of computations that an object may provide.
+Methods can not be extracted from an object.
+
+
+#### Keywords
+
+All functions in Canel.és require keywords from the second argument
+onwards. But may optionally provide a keyword for its first argument
+as well. This is similar to the design of Swift, and allows supporting
+proper overloads, as well as making intent more clear from the call site.
+
+
+### Host Services
+
+(TBD)
+
+
+### Protocols
+
+(TBD)
+
+### Parametric Modules
+
+(TBD)
+
+### A Summary of Core's Semantics
+
+(TBD)
