@@ -17,3 +17,21 @@ Things that still need figuring out:
 - Should we have the language describe which runtime it's using? Do we support this in Core?
 
 
+* ISSUE Incremental parsing
+
+How do we handle incremental parsing for the languages when working in
+the IDE?
+
+
+* ISSUE Canel.és is fundamentally incompatible with existing tooling
+
+Because nothing out there (text editors, github, etc) support this kind of
+multi-language language.
+
+* ISSUE Which services should Layers provide?
+
+Mapping compiled code to source, highlighting, formatting, linting.
+
+Can we support this with the grammar language?
+
+
