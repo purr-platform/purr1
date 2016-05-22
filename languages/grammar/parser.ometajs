@@ -170,8 +170,8 @@ module.exports = function(ast) {
     eof     = ~char,
     kw :xs  = seq(xs) ~(letter | digit),
 
-    IdStart    = letter,
-    IdRest     = letter | digit,
+    IdStart    = letter | '_',
+    IdRest     = letter | digit | '_',
     Identifier = <IdStart IdRest*>:a ?isValid(a) -> a,
 
     // --[ Rules ]-----------------------------------------------------
@@ -182,9 +182,9 @@ module.exports = function(ast) {
       Rule:x (ws Rule)*:xs -> [x].concat(xs),
 
     Rule =
-      kw('root') ws Identifier:name ws '=' ws TopLevel:xs     -> ['root', name, xs]
+      kw('root') ws Identifier:name ws '=' ws TopLevel:xs             -> ['root', name, xs]
     | kw('support') ws Identifier:name ws '=' ws TopLevel:xs  -> ['support', name, xs]
-    | kw('rule') ws Identifier:name ws '=' ws TopLevel:xs     -> ['rule', name, xs],
+    | kw('rule') ws Identifier:name ws '=' ws TopLevel:xs             -> ['rule', name, xs],
 
     TopLevel =
       BindExpression:x (ws '/' ws BindExpression)*:xs -> [x].concat(xs),
