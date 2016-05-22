@@ -1,0 +1,19 @@
+#+TYP_TODO: ISSUE | FIXED
+
+* ISSUE Multiple runtimes
+
+If we're having multiple languages, then each language must define its own
+runtime. But how do we manage all of these different runtimes when building?
+
+Currently every module is parameterised on a root runtime. The root runtime
+provides a =selectRuntime(languageIdentifier)= method, that's called to
+choose the runtime for that module, and it's up to the root runtime to
+figure out how to translate these language identifiers to actual runtime
+services.
+
+Things that still need figuring out:
+
+- How do we make sure that runtimes can't conflict?
+- Should we have the language describe which runtime it's using? Do we support this in Core?
+
+
