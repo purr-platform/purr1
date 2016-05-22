@@ -7,8 +7,6 @@
 //
 //---------------------------------------------------------------------
 
-let runtime = Object.create(null);
-
 function getType(value) {
   return typeof value === 'string'  ?  'string'
   :      typeof value === 'number'  ?  'float'
@@ -24,6 +22,7 @@ function types(l, r) {
 const { BigDecimal, BigInteger } = require('bigdecimal');
 const { List:IVector, Map:IMap, Set:ISet } = require('immutable');
 const { data } = require('folktale/core/adt');
+const PEG = require('pegjs');
 
 
 // --[ Values ]--------------------------------------------------------
@@ -321,11 +320,11 @@ const none = Result.Error("No value");
 
 
 // --[ Utilities ]-----------------------------------------------------
-function doImport(require, module, args) {
+function doImport(rt, require, module, args) {
   const instance = require(module);
   let mod;
   if (instance.$canelesModule) {
-    mod = instance(runtime)
+    mod = instance(rt);
   } else {
     mod = instance;
   }
@@ -509,5 +508,22 @@ module.exports = {
     return this;
   },
   module: makeModule,
-  import: doImport
+  import: doImport,
+
+  pegjs() {
+    return function(grammar, ast, roots) {
+      const parser = PEG.buildParser(grammar, {
+        allowedStartRules: roots
+      });
+      return function(code) {
+        if (arguments.length !== 1) {
+          throw new TypeError(`Expected 1 argument, given ${arguments.length}`);
+        }
+        return parser.parse(code, {
+          ast: ast,
+          map(v){ return new IMap(v) }
+        });
+      }
+    }
+  }
 }

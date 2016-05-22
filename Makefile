@@ -21,6 +21,7 @@ compile: $(SRC)
 	$(babel) src --source-map inline --out-dir lib
 	$(babel) runtime/src --source-map inline --out-dir runtime/lib
 	$(ometa) --beautify < languages/caneles/parser.ometajs > languages/caneles.js
+	$(ometa) --beautify < languages/grammar/parser.ometajs > languages/grammar.js
 
 lint:
 	$(eslint) .

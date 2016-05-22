@@ -81,6 +81,10 @@ const AST = data('caneles:ast', {
     return { operation, expression }
   },
 
+  Runtime(operation, parameters) {
+    return { operation, parameters }
+  },
+
 
   // ----[ Functions ]-------------------------------------------------
   // ...expr (in calls)

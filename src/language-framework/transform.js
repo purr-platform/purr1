@@ -323,6 +323,12 @@ function transform(ast, bind, language) {
         [transform(expression, bind)]
       ),
 
+    Runtime: ({ operation, parameters }) =>
+      internal(
+        operation,
+        parameters.map(x => transform(x, bind))
+      ),
+
     // ----[ Functions ]-----------------------------------------------
     Spread: ({ expression }) =>
       spread(transform(expression, bind)),
@@ -594,6 +600,7 @@ function transform(ast, bind, language) {
         def('const',
           binding,
           internal('import', [
+            id('$runtime'),
             id('require'),
             transform(module, bind),
             parameters ?  array(parameters.map(x => transform(x, bind)))
