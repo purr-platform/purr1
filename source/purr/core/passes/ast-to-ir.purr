@@ -1,0 +1,105 @@
+language purr.core.kernel
+
+#: Lowers the high-level Core AST into the high-level IR.
+module purr.core.passes.ast_to_ir where
+  public (lower)
+  from purr.prelude use (_ map:, _ join:, +, trace, _ filter:, _ fold_from:with:, _ flatmap:, Map, Set, empty, _ add:, _ at:put:, _ at:default:, _ from_vector:, panic, _ has:, as_vector)
+  from purr.core.ast use (
+    Name, Selector, Module, Declaration, Binding, Variant, Field, Signature, Argument, Keyword,
+    Boolean, Value, Expression, Let_Binding, Case, Pattern, Vector_Pattern, Qualified_Id,
+    Dispatch_Keyword, Field_Map, Field_Pattern, Method_Keyword
+  )
+  from purr.core.ir use (
+    Module as IR_Module, 
+    Binding as IR_Binding, 
+    Variant as IR_Variant, 
+    Let_Binding as IR_Let_Binding, 
+    Field_Map as IR_Field_Map, 
+    Case as IR_Case,
+    Declaration as IR_Declaration, 
+    Parameter as IR_Parameter, 
+    Expression as IR_Expression, 
+    Pattern as IR_Pattern
+  )
+
+  #region Lowering names
+  define (names is Qualified_Id) lower =
+    (names.value map: { x in x lower }) join: "."
+
+  define (name is Name) lower = name.value
+  define (selector is Selector) lower = selector.value
+  define (keyword is Keyword) lower = keyword.value + ":"
+  define (field is Field) lower = field.name
+
+  define (signature is Signature) lower =
+    match signature
+      case Signature.Nullary { name }                             do name lower
+      case Signature.Unary { name }                               do name lower
+      case Signature.Binary { operator }                          do operator lower
+      case Signature.Keyword { keywords }                         do keywords lower_keywords
+      case Signature.Keyword_With_Leading_Argument { keywords }   do "_ " + keywords lower_keywords
+
+  define (arg is Argument) lower =
+    match arg
+      case Argument.Untyped { name } do name lower
+      case Argument.Typed { name }   do name lower
+
+  define (x is Expression.Dispatch_Nullary) lower = x.name lower
+  define (x is Expression.Dispatch_Unary) lower = x.name lower
+  define (x is Expression.Dispatch_Binary) lower = x.operator lower
+  define (x is Expression.Dispatch_Keyword_With_Argument) lower = "_ " + x.keywords lower_keywords
+  define (x is Expression.Dispatch_Keyword) lower = x.keywords lower_keywords
+
+  
+  define (kw is Method_Keyword) lower = kw.name lower
+  define (kw is Dispatch_Keyword) lower = kw.keyword lower
+
+  define keywords lower_keywords =
+    (keywords map: { kw in kw lower }) join: ""
+
+
+
+  #endregion
+
+  #region Module-level analysis
+  define (mod is Module) lower =
+    let interface = mod.interface lower
+    in IR_Module{
+      interface = interface,
+      exports = collect_exports: (mod.declarations filter: { x in x is_export }) interface: interface,
+      uses = [],
+      declarations = []
+    }
+  #endregion
+
+  #region Binding analysis
+  define (node is Declaration) is_export =
+    match node
+      case Declaration.Public {} do true
+      case _                     do false
+
+  record Exports_Collector { names, bindings }
+
+  define collect_exports: exports interface: interface =
+    let original_bindings = exports flatmap: { x in x.bindings }
+    in let collected = original_bindings fold_from: Exports_Collector{ names = Set empty, bindings = Set empty }
+                                         with: { collector, binding in
+                                           let name = binding.selector lower in
+                                           if collector.names has: name then
+                                             (name + " is exported multiple times in " + interface) panic
+                                           else
+                                             Exports_Collector{
+                                               names = collector.names add: name,
+                                               bindings = collector.bindings add: IR_Binding{
+                                                 name = name,
+                                                 alias = binding.alias lower
+                                               }
+                                             }
+                                         }
+    in collected.bindings as_vector
+
+
+  define collect_imports: imports interface: interface = not implemented
+
+
+  #endregion

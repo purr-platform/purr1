@@ -1,0 +1,63 @@
+language purr.core.kernel/1
+
+#: Takes in a module, figures out the shape it defines, stores
+#: that information in the environment.
+module purr.core.passes.module.analyse_module_shape/1 where
+  public (Module_Shape, analyse)
+  from purr.core.ast/1 use (Declaration, Name, Interface_Specification, Module, Signature)
+  from purr.prelude/1 use (_ empty, _ at:put:, _ join:, _ map:)
+
+  record Module_Shape {
+    interface is Interface_Specification,  # Interface_Spec -- the interface we implement
+    imports,              # Name => [Bind] -- things we import from other modules
+    exports,              # [Bind]         -- things we make public
+    declarations          # Name => Decl   -- a typed environment of declarations
+  }
+
+  record Binding { name is Name, alias is Name }
+
+  define keywords namified = (keywords map: { _ first }) join: ":"
+  define signature namified = match signature
+    case Signature.Nullary { name }                           do name
+    case Signature.Unary { name }                             do "_ " + name
+    case Signature.Binary { operator }                        do operator
+    case Signature.Keyword_With_Leading_Argument { keywords } do "_ " + keywords namified
+    case Signature.Keeyword { keywords }                      do keywords namified
+      
+
+  define (entry is Module) analyse =
+    let shape = Module_Shape { 
+                  interface = entry.interface, 
+                  imports = [->], 
+                  exports = [], 
+                  declarations = [->] 
+                } 
+    in collect_declarations: entry.declarations shape: shape
+    |> { shape in collect_imports: entry.declarations shape: shape }
+    |> { shape in collect_exports: entry.declarations shape: shape }
+    |> { shape in verify_exports: shape }
+
+
+  # Collects a map of declaration name => declaration
+  define collect_declarations: declarations shape: shape = match declarations
+    case [Declaration.Record { name } as x, ...rest] do
+      collect_declarations: rest
+      shape: shape { declarations at: name put: x }
+
+    case [Declaration.Union { name } as x, ...rest] do
+      collect_declarations: rest 
+      shape: shape { declarations at: name put: x }
+
+    case [Declaration.Method { signature } as x, ...rest] do
+      collect_declarations: rest
+      shape: shape { declarations at: signature name put: x }
+
+    case [Declaration, ...rest] do
+      collect_declarations: rest
+      shape: shape
+
+    case [] do shape
+
+      
+  define collect_imports: declarations shape: shape = match declarations
+    case [Declaration.]

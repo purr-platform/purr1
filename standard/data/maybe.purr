@@ -1,0 +1,34 @@
+language purr.core 0.1
+
+module data.maybe where
+  public (Maybe, _:some:, none, _:map:, _:chain:, _:value_or_default:)
+
+  #: Data structures
+  union Maybe
+    case None
+    case Some { value }
+
+  #: Constructing
+  define (type is Maybe) some: value = Maybe.Some { value = value }
+  define (type is Maybe) none =  Maybe.None
+
+  #: Transforming
+  define (value is Maybe) map: (f is Function) =
+    match value
+      case Maybe.None           do Maybe none
+      case Maybe.Some { value } do Maybe some: f(value)
+
+
+  define (value is Maybe) chain: (f is Function) =
+    match value
+      case Maybe.None           do Maybe none
+      case Maybe.Just { value } do f(value)
+
+  
+  #: Extracting
+  define (value is Maybe) value_or_default: default =
+    match value
+      case Maybe.None           do default
+      case Maybe.Just { value } do value
+
+  

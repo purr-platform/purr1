@@ -1,0 +1,131 @@
+language purr.core 0.1
+
+module purr.core.codegen where
+  public (DeclarationType, AST, generate, id, raw_id, spread, text, vector, bool, set:to:, /, _:fn:, let:be:, return:, _:apply:, if:then:else:)
+
+  union DeclarationType
+    case Var
+    case Let
+    case Const
+
+  union AST
+    case RawIdentifier { name }
+    case Identifier { name }
+    case Spread { identifier }
+
+    case Assignment { l_value, r_value }
+    case Member { object, property }
+    case Lambda { parameters, body }
+    case Declaration { type, l_value, r_value }
+    case Return { expression }
+    case Call { callee, arguments }
+    case Conditional { test, consequent, alternate }
+
+    case Text { value }
+    case Vector { items }
+    case Bool { value }
+
+  union Document
+    case Block { indentation, elements }
+    case Flow { elements }
+    case Element { text }
+
+  define flow: elements      = Document.Flow { elements = elements }
+  define text: text          = Document.Element { text = text }
+  define indent: n block: xs = Document.Block { indentation = n, elements = xs }
+
+  define stringify: document depth: n =
+    match document
+      case Document.Element { text } do 
+        text
+
+      case Document.Flow { elements } do
+        elements join: ""
+
+      case Document.Block { indentation, elements } do
+        let indent = " " repeated: indentation + n in
+        let first_indent = " " repeated: indentation in
+        "\n" + first_indent + (elements join: "\n" + indent) + "\n"
+
+
+  define ast generate = stringify: ast as_doc depth: 0
+
+  define ast as_doc = 
+    match ast
+      case AST.RawIdentifier { name } do 
+        text: name
+
+      case AST.Identifier { name } do 
+        text: name mangled
+
+      case AST.Spread { identifier } do
+        flow: [text: "...", text: identifier as_doc]
+
+      case AST.Assignment { l_value, r_value } do
+        flow: [
+          l_value as_doc, text: " = ", r_value as_doc
+        ]
+
+      case AST.Member { object, property } do
+        flow: [
+          object as_doc, text: ".", property as_doc
+        ]
+
+      case AST.Lambda { parameters, body } do
+        let params = (parameters map: { x in x as_doc }) intersperse: (text: ", ") in
+        flow: [
+          text: "function(", params, text: ") {", 
+          indent: 2 block: (body map: { x in x as_doc }),
+          text: "}"
+        ]
+
+      case AST.Declaration { type, l_value, r_value } do
+        let token = match type
+                      case DeclarationType.Var {}   do "var"
+                      case DeclarationType.Let {}   do "let"
+                      case DeclarationType.Const {} do "const"
+        in
+        flow: [token, text: " ", l_value as_doc, text: " = ", r_value as_doc]
+
+      case AST.Return { expression } do
+        flow: [text: "return ", expression as_doc]
+
+      case AST.Call { callee, arguments } do
+        let args = (arguments map: { x in x as_doc }) intersperse: (text: ", ") in
+        flow: [text: "(", callee as_doc, text: ")(", args, text: ")"]
+
+      case AST.Conditional { test, consequent, alternate } do
+        flow: [
+          text: "(", test as_doc, text: ")",
+          indent: 2 block: [
+            flow: [text: "? (", consequent as_doc, text: ")"],
+            flow: [text: ": (", alternate as_doc, text: ")"]
+          ]
+        ]
+
+      case AST.Text { value } do
+        escape_js_string: value
+
+      case AST.Vector { items } do
+        let gen_items = (items map: { x in x as_doc }) intersperse: (text: ", ") in
+        flow: [text: "[", gen_items, text: "]"]
+
+      case AST.Bool { value = "true" }  do text: "true"
+      case AST.Bool { value = "false" } do text: "false"
+
+
+  # Tiny DSEL
+  define a id = AST.Identifier { name = a }
+  define a raw_id = AST.Identifier { name = a }
+  define a spread = AST.Spread { identifier = a }
+  define a text = AST.Text { value = a }
+  define a vector = AST.Vector { items = a }
+  define a bool = AST.Bool { value = a }
+
+  define set: a to: x = AST.Assignment { l_value = a, r_value = x }
+  define a / b = AST.Member { object = a, property = b }
+  define ps fn: e = AST.Lambda { parameters = ps, body = e }
+  define let: a be: x = AST.Declaration { type = DeclarationType.Const, l_value = a, r_value = x }
+  define return: a = AST.Return { expression = a }
+  define fn apply: xs = AST.Call { callee = fn, arguments = xs }
+  define if: a then: b else: c = AST.Conditional { test = a, consequent = b, alternate = c }

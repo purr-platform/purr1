@@ -1,0 +1,79 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Purr",
+  "patterns": [
+    {
+      "name": "keyword.control.purr",
+      "match": "(?<![a-zA-Z0-9_\\.\\^])(module|where|record|union|case|from|use|public|do|let|in|if|then|else|match|define|as|is|foreign)(?![a-zA-Z0-9_])"
+    },
+    {
+      "name": "constant.language.purr",
+      "match": "(?<![a-zA-Z0-9_])(true|false)(?![a-zA-Z0-9_])"
+    },
+    {
+      "name": "comment.line.heading.purr",
+      "match": "language\\s+\\S+"
+    },
+    {
+      "name": "constant.numeric.integer.binary.purr",
+      "match": "(?<![a-zA-Z0-9\\-])[\\-\\+]?0b[01][01_]*"
+    },
+    {
+      "name": "constant.numeric.integer.octal.purr",
+      "match": "(?<![a-zA-Z0-9\\-])[\\-\\+]?0o[0-7][0-7_]*"
+    },
+    {
+      "name": "constant.numeric.integer.hexadecimal.purr",
+      "match": "(?<![a-zA-Z0-9\\-])[\\-\\+]?0x[0-9a-fA-F][0-9a-fA-F_]*"
+    },
+    {
+      "name": "constant.numeric.integer.purr",
+      "match": "(?<![a-zA-Z0-9\\-])[\\-\\+]?[0-9][0-9_]*"
+    },
+    {
+      "name": "constant.numeric.decimal.purr",
+      "match": "(?<![a-zA-Z0-9\\-])[\\-\\+]?[0-9][0-9_]*(\\.[0-9][0-9_]*)?([eE][\\-\\+]?[0-9][0-9_]*)?"
+    },
+    {
+      "name": "storage.type.purr",
+      "match": "(?<![a-zA-Z0-9_])[A-Z][a-zA-Z0-9\\_]*"
+    },
+    {
+      "name": "variable.name.purr",
+      "match": "(?<![a-zA-Z0-9_])[a-zA-Z][a-zA-Z0-9_]*"
+    },
+    {
+      "name": "keyword.symbol.purr",
+      "match": "'[\\S\\)\\(\\[\\]]+"
+    },
+    {
+      "name": "string.quoted.triple",
+      "begin": "\"{3}",
+      "end": "\"{3}"
+    },
+    {
+      "name": "string.quoted.double",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape",
+          "match": "\\\\(x[0-9A-Fa-f]{2}|[0-2][0-7]{0,2}|3[0-6][0-7]?|37[0-7]?|[4-7][0-7]?|.|$)"
+        }
+      ]
+    },
+    {
+      "name": "keyword.record.purr",
+      "match": "(?<![a-zA-Z0-9_\\.])[a-zA-Z][a-zA-Z_]*:"
+    },
+    {
+      "name": "comment.line",
+      "match": "#.+"
+    },
+    {
+      "name": "keyword.operator.purr",
+      "match": "(?<![a-zA-Z0-9_])(===|=/=|>|>=|<|<=|\\+|-|\\*|/|@|\\|>|not|and|or|\\$)(?!a-zA-Z0-9_)"
+    }
+  ],
+  "scopeName": "source.purr"
+}

@@ -1,18 +1,20 @@
-# Canel.és
+# Purr
 
-Canel.és is a programming language framework, designed primarily for teaching,
+> **NOTE**: this describes an older version of the system.
+
+Purr is a programming language framework, designed primarily for teaching,
 but it can also be used for safe sandboxing and general-purpose programming.
 
 
 ## The Concept
 
-As a programming language **framework**, Canel.és itself has no concrete
+As a programming language **framework**, Purr itself has no concrete
 syntax. Instead, it provides an intermediate format and semantics that
 can be used by different "interfaces" (syntaxes). These interfaces are
 called *layers*.
 
-A Canel.és layer is a program that implements facilities to support a
-programming language that runs on top of Canel.és intermediate format
+A Purr layer is a program that implements facilities to support a
+programming language that runs on top of Purr intermediate format
 (the Core language). Minimally a layer must provide at least a compiler,
 that translates source code in that language to a valid Core program:
 
@@ -94,29 +96,29 @@ highlighter, static analysers, etc.
 
 ## How Does This Work?
 
-Each program in Canel.és begins by describing which language it's using:
+Each program in Purr begins by describing which language it's using:
 
 ```ruby
 #language <language-id>
 ```
 
 Here the `<language-id>` part describes a module ID that should be loaded
-by the Canel.és compiler to work with this module. Currently, `<language-id>`s
+by the Purr compiler to work with this module. Currently, `<language-id>`s
 are Node module identifiers (path names), and describe a Node module that
 implements the Layer interface.
 
 Modules are compiled on-the-fly, so there are no intermediate files laying
-around. This is because Canel.és only does whole-program builds, rather
+around. This is because Purr only does whole-program builds, rather
 than modular compilation. 
 
 > **OPEN ISSUE**  
-> It's not clear how modules in Canel.és could be dynamically linked at
+> It's not clear how modules in Purr could be dynamically linked at
 > this point, or even if that would be a good idea. Whole-program builds
 > are required for some of the features, and for the static analysis.
 
 All of the content after `#language <language-id>` is fed into the
 `compile` service of the Layer module, and the resulting AST is then
-further processed by the Canel.és compiler toolchain before being
+further processed by the Purr compiler toolchain before being
 translated to an executable form.
 
 
@@ -136,7 +138,7 @@ The semantics are guided by the following principles:
 Of course, since the Core language makes many design decisions already,
 efficient implementations of languages that stray too much from these
 semantics becomes an issue. Where this is the case, understand that
-Canel.és chooses to provide a set of semantics that makes it easier
+Purr chooses to provide a set of semantics that makes it easier
 to introduce fundamental and good programming concepts gradually.
 
 So, additionally, these semantics are guided by the following constraints:
@@ -192,8 +194,8 @@ may have different syntaxes while using the same underlying features.
 
 ### A focus on data transformations
 
-Following How To Design Programs, the major focus of Canel.és is to support
-teaching programming-as-transforming-data-structures. With this, Canel.és needs
+Following How To Design Programs, the major focus of Purr is to support
+teaching programming-as-transforming-data-structures. With this, Purr needs
 to have strong support for rich data modelling and for picking apart pieces of a
 model, and putting it back together.
 
@@ -234,7 +236,7 @@ as well as other data processing functions more natural.
 
 #### Arbitrary-precision arithmetic
 
-Most languages provide smaller numeric values for efficiency. Canel.és is
+Most languages provide smaller numeric values for efficiency. Purr is
 not primarily concerned about the efficiency of programs written in it,
 so all of the default numeric types use arbitrary-precision arithmetic.
 This avoids having to explain floating points in at the beginning of
@@ -248,7 +250,7 @@ are provided.
 #### Efficient immutable types
 
 Because data is the primary focus, it's important to provide data structures
-that support data transformations efficiently. Canel.és provides the following:
+that support data transformations efficiently. Purr provides the following:
 
   - **String**: immutable sequences of characters.
   - **Vector**: immutable random-access vector.
@@ -259,7 +261,7 @@ that support data transformations efficiently. Canel.és provides the following:
 
 ### Error handling
 
-To avoid issues with non-locality Canel.és makes all partial functions
+To avoid issues with non-locality Purr makes all partial functions
 total by having them return a specialised `Either` type (which we call
 `Result`).
 
@@ -291,7 +293,7 @@ into a Result structure.
 
 ### Object Model
 
-Canel.és has a simple object model, which is a stripped down version
+Purr has a simple object model, which is a stripped down version
 of JavaScript's. Objects are made out of a `Parent` link, a set of
 `fields`, a collection of *internal state*, and a set of `methods`.
 
@@ -314,7 +316,7 @@ Methods can not be extracted from an object.
 
 #### Keywords
 
-All functions in Canel.és require keywords from the second argument
+All functions in Purr require keywords from the second argument
 onwards. But may optionally provide a keyword for its first argument
 as well. This is similar to the design of Swift, and allows supporting
 proper overloads, as well as making intent more clear from the call site.

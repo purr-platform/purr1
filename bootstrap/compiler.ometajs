@@ -1,0 +1,53 @@
+var g = require('./codegen');
+
+ometa PurrCompiler {
+  any :a -> a,
+
+  qualid  = #qualid [any*:id] -> id.map(function(x){ return x[1] }).join('.'),
+
+  id = [#id :i] -> i,
+  fmap = [id:i compile:e] -> [i, e],
+
+  compile_meth_param = [id:i [#any]] -> [i, null]
+                     | [id:i compile:e] -> [i, e],
+
+  compile =
+    [#mod [qualid:id] [compile*:decl]]                        -> g.Module(id, decl)
+  | [#record [#id :id] :fields]                               -> g.Record(id, fields)
+  | [#union [#id :id] [compile*:cases]]                       -> g.Union(id, cases)
+  | [#case [#id :id] :fields]                                 -> [id, fields]
+  | [#public :symbols]                                        -> g.Public(symbols)
+  | [#use [qualid:id] :symbols]                               -> g.Use(id, symbols)
+  | [#method [:sig []] compile:expr]                          -> g.Thunk(sig, expr)
+  | [#method [:sig [compile_meth_param*:args]] compile:expr]  -> g.Method(sig, args, expr)
+  | [#ffi compile:p id:i]                                     -> g.FFI(p, i)
+
+  // --- Values
+  | [#bool :v]                              -> g.Bool(v)
+  | [#int :s :v]                            -> g.Int32(s, v)
+  | [#dec :s :i :d]                         -> g.Dec64(s, i, d)
+  | [#text :v]                              -> g.Text(v)
+  | [#vec [compile*:xs]]                    -> g.Vector(xs)
+  | [#closure :args compile:expr]           -> g.Closure(args, expr)
+
+  // ---- Exprs
+  | [#if compile:c compile:t compile:e]    -> g.IfElse(c, t, e)
+  | [#let [#id :i] compile:v compile:e]    -> g.Let(i, v, e)
+  | [#match compile:e [compile*:cs]]       -> g.Match(e, cs)
+  | [#case compile_pattern:p compile:e]    -> g.Case(p, e)
+  | [#mcall :sig [compile*:args]]          -> g.MCall(sig, args)
+  | [#new compile:a [fmap*:fs]]            -> g.New(a, fs)
+  | [#call compile:a [compile*:args]]      -> g.Call(a, args)
+  | [#proj compile:r id:a]                 -> g.Proj(r, a)
+  | [#deref id:a]                          -> g.Deref(a),
+
+  compile_pattern =
+    [#patt_any]                                              -> g.PatternAny()
+  | [#patt_eq compile:v]                                     -> g.PatternEqual(v)
+  | [#patt_bind id:i]                                        -> g.PatternBind(i)
+  | [#patt_unapply compile:e [compile_field_pattern*:ps]]    -> g.PatternUnapply(e, ps)
+  | [#patt_vec [[compile_pattern*:ps] compile_pattern:p]]    -> g.PatternVector(ps, p)
+  | [#none]                                                  -> null,
+
+  compile_field_pattern = [id:i compile_pattern:p] -> [i, p]
+}

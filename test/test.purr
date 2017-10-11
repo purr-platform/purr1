@@ -1,0 +1,12 @@
+language purr.core.kernel
+
+module purr.test where
+  public (main)
+  from purr.core.parser use (parse)
+  from purr.prelude use (lines, unlines, read_file, display, _ drop:, size, _ resource:)
+  from purr.core.passes.ast_to_ir use (lower)
+
+  define main =
+    let data = (self resource: "../source/purr/core/parser.purr") read_file in
+    let source = (data lines drop: 1) unlines in
+    source parse lower display

@@ -1,0 +1,152 @@
+language purr.core.kernel
+
+module purr.prelude where
+  foreign "./primitives.js" as p
+  public (
+    Decimal_64bit, Text, Boolean, Vector, Function, Map, Set,
+    Maybe, Result, List, Ordering,
+    not, and, or, >, >=, <, <=, ===, =/=, +, -, *, /,
+    _ map:, _ filter:, size, first, last, rest, _ slice_from:to:, _ take:, _ drop:, reversed, _ at:, _ fold_from:with:, _ fold_right_from:with:, _ zip:, _ zip:with:, _ sort:, _ flatmap:, _ intersperse:, _ join:,
+    lines, unlines,
+    as_vector, as_text,
+    read_file, exists, _ write_file:, path, list_directory, find_glob,
+    display, trace, panic,
+    _ resource:,
+    empty, _ from_vector:, _ at:put:, _ at:, _ at:default:, _ remove_at:, _ has:, keys, values, entries,
+    _ add:, _ remove:, _ union:, _ intersect:, _ difference:,
+    as_vector
+  )
+
+  # -- Type contracts
+  define Decimal_64bit = p.Dec64
+  define Text = p.Text
+  define Boolean = p.Bool
+  define Vector = p.Vector
+  define Function = p.Function
+  define Map = p.Map
+  define Set = p.Set
+  
+
+  # -- Custom structures
+  union Maybe
+    case None
+    case Some { value }
+
+  union Result
+    case Error { reason }
+    case Ok { value }
+
+  union List
+    case Empty
+    case Node { value, rest }
+
+  union Ordering
+    case Lesser
+    case Equal
+    case Greater
+
+
+  # -- Operators
+  define not (a is Boolean)                = p.bool_not(a)
+  define (a is Boolean) and (b is Boolean) = p.bool_and(a, b)
+  define (a is Boolean) or  (b is Boolean) = p.bool_or(a, b)
+
+  define (a is Decimal_64bit) > (b is Decimal_64bit) = p.dec64_gt(a, b)
+  define (a is Decimal_64bit) >= (b is Decimal_64bit) = p.dec64_gte(a, b)
+  define (a is Decimal_64bit) < (b is Decimal_64bit) = p.dec64_lt(a, b)
+  define (a is Decimal_64bit) <= (b is Decimal_64bit) = p.dec64_lte(a, b)
+
+  define (a is Decimal_64bit) + (b is Decimal_64bit) = p.dec64_add(a, b)
+  define (a is Text) + (b is Text) = p.text_concat(a, b)
+  define (a is Vector) + (b is Vector) = p.vec_concat(a, b)
+
+  define (a is Decimal_64bit) - (b is Decimal_64bit) = p.dec64_sub(a, b)
+  define (a is Decimal_64bit) * (b is Decimal_64bit) = p.dec64_mul(a, b)
+  define (a is Decimal_64bit) / (b is Decimal_64bit) = p.dec64_div(a, b)
+
+  define (a is Decimal_64bit) === (b is Decimal_64bit) = p.dec64_eq(a, b)
+  define (a is Boolean) === (b is Boolean) = p.bool_eq(a, b)
+  define (a is Text) === (b is Text) = p.text_eq(a, b)
+  define (a is Vector) === (b is Vector) = p.vec_eq(a, b)
+
+  define (a is Decimal_64bit) =/= (b is Decimal_64bit) = p.dec64_neq(a, b)
+  define (a is Boolean) =/= (b is Boolean) = not (a === b)
+  define (a is Text) =/= (b is Text) = not (a === b)
+  define (a is Vector) =/= (b is Vector) = not (a === b)
+
+  # -- Vector
+  define (xs is Vector) map: (f is Function) = p.vec_map(xs, f)
+  define (xs is Vector) filter: (f is Function) = p.vec_filter(xs, f)
+  define (xs is Vector) size = p.vec_size(xs)
+  define (xs is Vector) first = p.vec_first(xs)
+  define (xs is Vector) last = p.vec_last(xs)
+  define (xs is Vector) rest = p.vec_rest(xs)
+  define (xs is Vector) slice_from: (m is Decimal_64bit) to: (n is Decimal_64bit) = p.vec_slice(xs, m, n)
+  define (xs is Vector) reversed = p.vec_reverse(xs)
+  define (xs is Vector) at: (n is Decimal_64bit) = p.vec_at(xs, n)
+  define (xs is Vector) fold_from: i with: (f is Function) = p.vec_fold(xs, i, f)
+  define (xs is Vector) fold_right_from: i with: (f is Function) = p.vec_foldr(xs, i, f)
+  define (xs is Vector) zip: (ys is Vector) = p.vec_zip(xs, ys)
+  define (xs is Vector) zip: (ys is Vector) with: (f is Function) = p.vec_zipwith(xs, ys, f)
+  define (xs is Vector) sort: (f is Function) = p.vec_sort(xs, { a, b in match f(a, b)
+                                                                           case Lesser  do -1
+                                                                           case Equal   do  0
+                                                                           case Greater do  1
+                                                })
+  define (xs is Vector) flatmap: (f is Function) = p.vec_flatmap(xs, f)
+  define (xs is Vector) intersperse: x = p.vec_intersperse(xs, x)
+  define (xs is Vector) join: (x is Text) = p.vec_join(xs, x)
+
+  # -- Conversion
+  define (a is Text) as_vector = p.text_to_vec(a)
+  define (a is Decimal_64bit) as_text = p.dec_to_text(a)
+  define (a is Boolean) as_text = p.bool_to_text(a)
+
+
+  # -- IO
+  define (path is Text) read_file = p.fs_read(path)
+  define (path is Text) exists = p.fs_exists(path)
+  define (path is Text) write_file: (data is Text) = p.fs_write(path, data)
+  define (xs is Vector) path = p.fs_path(xs)
+  define (a is Text) / (b is Text) = p.fs_join(a, b)
+  define (path is Text) list_directory = p.fs_list(path)
+  define (glob is Text) find_glob = p.fs_glob(glob)
+
+  define a display = [p.display(a), Maybe.None] last
+  define a trace = p.trace(a)
+  define (a is Text) panic = p.panic(a)
+
+  define mod resource: (path is Text) = p.resource(mod, path)
+
+  define (a is Text) lines = p.lines(a)
+  define (a is Vector) unlines = a join: "\n"
+
+  define (a is Vector) take: (n is Decimal_64bit) = a slice_from: 1 to: n
+  define (a is Vector) drop: (n is Decimal_64bit) = a slice_from: 1 + n to: a size
+
+
+  define (a is Map.type) empty = p.map_empty()
+  define (a is Map.type) from_vector: (xss is Vector) = p.map_from_vector(xss)
+  define (a is Map) size = p.map_size(a)
+  define (a is Map) at: key put: value = p.map_put(a, key, value)
+  define (a is Map) remove_at: key = p.map_remove(a, key)
+  define (a is Map) merge: (b is Map) = p.map_merge(a, b)
+  define (a is Map) === (b is Map) = p.map_equals(a, b)
+  define (a is Map) at: key = p.map_at(a, key)
+  define (a is Map) at: key default: value = p.map_at_default(a, key, value)
+  define (a is Map) has: key = p.map_has(a, key)
+  define (a is Map) keys = p.map_keys(a)
+  define (a is Map) values = p.map_values(a)
+  define (a is Map) entries = p.map_entries(a)
+  define (a is Map) as_vector = p.map_to_vector(a)
+
+  define (a is Set.type) empty = p.set_empty()
+  define (a is Set.type) from_vector: (xs is Vector) = p.set_from_vector(xs)
+  define (a is Set) size = p.set_size(a)
+  define (a is Set) add: v = p.set_add(a, v)
+  define (a is Set) remove: v = p.set_remove(a, v)
+  define (a is Set) union: (b is Set) = p.set_union(a, b)
+  define (a is Set) intersect: (b is Set) = p.set_intersect(a, b)
+  define (a is Set) difference: (b is Set) = p.set_difference(a, b)
+  define (a is Set) has: v = p.set_has(a, v)
+  define (a is Set) as_vector = p.set_to_vector(a)

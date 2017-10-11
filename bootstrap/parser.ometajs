@@ -1,0 +1,196 @@
+var reserved = [
+  'module', 'where', 'record', 'union', 'case', 'from', 'use', 'public', 'do', 'in', 'if', 'then', 'else', 'match',
+  'and', 'or', 'not', 'define', 'true', 'false', 'is', 'foreign'
+];
+
+function isValid(x) {
+  return reserved.indexOf(x) === -1;
+}
+
+function sigKw(xs) {
+  return xs.map(function(x){ return x[0][1] + ':' }).join('');
+}
+
+function sigArg(xs) {
+  return xs.map(function(x){ return x[1] });
+}
+
+ometa PurrParser {
+  space = /\s/,
+  ignored = space | comment,
+  comment = fromTo('#', '\n'):a -> a.slice(2),
+  ws = ignored*,
+  eof = ~char,
+  kw :xs = seq(xs) ~(letter | digit | '!' | ':'),
+  digits = <digit+>,
+
+  IdStart = letter,
+  IdRest  = letter | '_' | digit,
+  
+  Id = <IdStart IdRest*>:x ?isValid(x) -> ['id', x],
+  Keyword = <IdStart IdRest*>:x ':' -> ['kw', x],
+  Binary = (seq('<=') | seq('>=') | '>' | '<' | seq('===') | seq('=/=') | '/' | '*' | '+' | '-' | seq('and') | seq('or') | seq('not')):a -> ['sym', a],
+
+  selector = Binary
+           | seq('_ ')?:x Keyword+:xs -> ['kw', (x || '') + xs.map(function(x){ return x[1] + ':' }).join('')]
+           | Id,
+
+
+  QualId = Id:a ('.' Id)*:as -> ['qualid', [a].concat(as)],
+  Version = digits:a '.' digits:b -> ['version', a, b],
+
+  fieldList = '{' ws '}' -> []
+            | '{' ws Id:a (ws ',' ws Id)*:as ws '}' -> [a].concat(as),
+
+
+  fieldListR = Id:a (ws ',' ws Id)*:as -> [a].concat(as),
+
+  // ----
+  Module = kw('module') ws QualId:i ws kw('where') (ws Declaration)*:ds -> ['mod', i, ds],
+
+
+  // ---- Declarations
+  Declaration = Record | Union | Import | Export | Method,
+
+  Record = kw('record') ws Id:a ws fieldList:fs -> ['record', a, fs],
+  
+  Union = kw('union') ws Id:a (ws unionCase)+:cs -> ['union', a, cs],
+  unionCase = kw('case') ws Id:a ws fieldList:fs -> ['case', a, fs]
+            | kw('case') ws Id:a                 -> ['case', a, []],
+
+  Import = kw('from') ws QualId:i ws kw('use') ws symbolList:as -> ['use', i, as],
+  symbolList = '(' ws binding:a (ws ',' ws binding)*:as ws ')' -> [a].concat(as),
+  exportList = '(' ws selector:a (ws ',' ws selector)*:as ws ')' -> [a].concat(as),
+
+  binding = selector:a ws kw('as') ws selector:b -> [a[1], b[1]]
+          | selector:a -> [a[1], a[1]],
+
+  Export = kw('public') ws exportList:as -> ['public', as],
+
+  Method = kw('define') ws paramPattern:p ws '=' ws Expr:e -> ['method', p, e],
+  paramPattern = seq('not') ws MethodParam:b                      -> ['not', [b]]
+               | MethodParam:a ws Binary:b ws MethodParam:c       -> [b[1], [a, c]]
+               | MethodParam:a ws keywordArgs:as                  -> ['_ ' + sigKw(as), [a].concat(sigArg(as))]
+               | keywordArgs:as                                   -> [sigKw(as), sigArg(as)]
+               | MethodParam:a ws Id:b                            -> [b[1], [a]]
+               | Id:a                                             -> [a[1], []],
+  
+  MethodParam = Id:a -> [a, ['any']]
+              | '(' ws Id:a ws kw('is') ws Expr:b ws ')' -> [a, b],
+
+  keywordArgs = (ws Keyword:k ws MethodParam:n -> [k, n])+,
+
+
+  // ---- Values
+  Values = Bool | Int32 | Dec64 | Text | Vector | Closure,
+
+  Bool  = kw('true')  -> ['bool', 'true'] 
+        | kw('false') -> ['bool', 'false'],
+  Int32 = '-'?:s digits:a -> ['int', s || '+', a],
+  Dec64 = '-'?:s digits:a '.' digits:b -> ['dec', s || '+', a, b],
+
+  stringEscape = '\\' ( 'b' -> '\b'
+                      | 'f' -> '\f'
+                      | 'n' -> '\n'
+                      | 'r' -> '\r'
+                      | 't' -> '\t'
+                      | char),
+
+  stringChar = stringEscape:a       -> a
+             | (~seq('"') char):a   -> a,
+  unescapableChars = ~seq('"""') char,
+
+  Text = seq('"""') <unescapableChars*>:as seq('"""') -> ['text', as]
+       | '"' stringChar*:as '"'                       -> ['text', as.join('')],
+
+  Vector = '[' ws ']' -> ['vec', []]
+         | '[' ws Expr:a (ws ',' ws Expr)*:as ws ']' -> ['vec', [a].concat(as)],
+
+  Closure = '{' ws fieldListR:fs ws kw('in') ws Expr:e ws '}' -> ['closure', fs, e]
+          | '{' ws Expr:e ws '}'                              -> ['closure', [], e],
+ 
+  
+  // ---- Expression
+  Expr = IfElse
+       | Let
+       | Match
+       | KwCall,
+
+  IfElse = kw('if') ws Expr:c ws kw('then') ws Expr:t ws kw('else') ws Expr:e -> ['if', c, t, e],
+
+  Let = kw('let') ws Id:i ws '=' ws Expr:e ws kw('in') ws Expr:b -> ['let', i, e, b],
+
+  Match = kw('match') ws Expr:e (ws matchCase)+:cs -> ['match', e, cs],
+
+  matchCase = kw('case') ws Pattern:p ws kw('do') ws Expr:e -> ['case', p, e],
+
+  Pattern = kw('any') -> ['patt_any']
+          | (Bool | Int32 | Dec64 | Text):v -> ['patt_eq', v]
+          | Postfix:a ws '{' ws fieldPattern:fs ws '}' -> ['patt_unapply', a, fs]
+          | Postfix:a ws '{' ws '}' -> ['patt_unapply', a, []]
+          | PatternVector:v -> ['patt_vec', v]
+          | Id:i -> ['patt_bind', i]
+          | '_' -> ['patt_any']
+          | '(' ws Pattern:a ws ')' -> a,
+
+  PatternVector = '[' ws ']' -> [[], ['none']]
+                | '[' ws Pattern:p (ws ',' ws Pattern)*:ps (ws ',' ws PatternVectorLast)?:le ws ']'
+                  -> [[p].concat(ps), le || ['none']]
+                | '[' ws PatternVectorLast:le ws ']'
+                  -> [[], le],
+
+  PatternVectorLast = seq('...') Id:i      -> ['patt_bind', i]
+                    | seq('...') kw('any') -> ['patt_any'],
+
+  fieldPatternKV = Id:a ws '=' ws Expr:e -> [a, ['patt_eq', e]]
+                 | Id:a ws kw('as') ws Id:b -> [a, ['patt_bind', b]]
+                 | Id:a -> [a, ['patt_bind', a]],
+  fieldPattern = fieldPatternKV:x (ws ',' ws fieldPatternKV)*:xs -> [x].concat(xs),
+
+  kwApp = Keyword:k ws Logical:v -> [k, v],
+  KwCall = Logical:a (ws kwApp)+:as -> ['mcall', '_ ' + sigKw(as), [a].concat(sigArg(as))]
+         | (ws kwApp)+:as -> ['mcall', sigKw(as), sigArg(as)]
+         | Logical,
+
+
+  Logical = Logical:a ws (kw('and') | kw('or')):o ws Negate:b -> ['mcall', o, [a, b]]
+          | Negate,
+
+  Negate = kw('not') ws Relational:e -> ['mcall', 'not', [e]]
+         | Relational,
+
+  Relational = Relational:a ws (seq('===') | seq('=/=') | seq('>=') | seq('<=') | seq('>') | seq('<')):o ws Add:b -> ['mcall', o, [a, b]]
+             | Add,
+
+  Add = Add:a ws ('+' | '-'):o ws Multiply:b -> ['mcall', o, [a, b]]
+      | Multiply,
+
+  Multiply = Multiply:a ws ('*' | '/') ws Unary:b -> ['mcall', o, [a, b]]
+           | Unary,
+
+  Unary = Unary:a ws Id:i ~':' -> ['mcall', i[1], [a]]
+        | Unary:a ws exprList:es -> ['call', a, es]
+        | Unary:a ws '{' ws fieldMap:fs ws '}' -> ['new', a, fs]
+        | Postfix,
+
+  fieldMapKV = Id:a ws '=' ws Expr:e -> [a, e],
+  fieldMap = fieldMapKV:x (ws ',' ws fieldMapKV)*:xs -> [x].concat(xs),
+
+  exprList = '(' ws ')' -> []
+           | '(' Expr:e (ws ',' ws Expr)*:es ws ')' -> [e].concat(es),
+
+  Postfix = Postfix:r ws '.' ws Id:a -> ['proj', r, a]
+          | Primary,
+
+  Primary = Values
+          | Id:a ~':' -> ['deref', a]
+          | '(' ws Expr:e ws ')' -> e,
+
+  Program = ws Module:m ws eof -> m,
+
+
+  Privileged = ws PrivModule:m ws eof -> m,
+  PrivModule = kw('module') ws QualId:i ws kw('where') (ws PrivDeclaration)*:ds -> ['mod', i, ds],
+  PrivDeclaration = Declaration | FFI,
+  FFI = kw('foreign') ws Text:p ws kw('as') ws Id:a -> ['ffi', p, a]
+}

@@ -1,0 +1,26 @@
+{
+    "name": "purr",
+    "displayName": "Purr",
+    "description": "Basic support for the Purr Core language",
+    "version": "0.0.1",
+    "publisher": "robotlolita",
+    "engines": {
+        "vscode": "^1.12.0"
+    },
+    "categories": [
+        "Languages"
+    ],
+    "contributes": {
+        "languages": [{
+            "id": "purr",
+            "aliases": ["Purr", "purr"],
+            "extensions": [".purr"],
+            "configuration": "./language-configuration.json"
+        }],
+        "grammars": [{
+            "language": "purr",
+            "scopeName": "source.purr",
+            "path": "./syntaxes/purr.tmLanguage.json"
+        }]
+    }
+}

@@ -1,0 +1,35 @@
+language purr.core 0.1
+
+module purr.core.compiler where
+  from purr.prelude use (map:)
+  from purr.core.codegen use (DeclarationType, AST, generate, id, raw_id, spread, text, vector, bool, set:to:, /, _:fn:, let:be:, return:, _:apply:, if:then:else:)
+  from purr.core.ast use (Module, Interface_Specifier, Name, Qualified_Name, Declaration, Field, Variant, Binding_Specifier, Method_Parameter, Method_Dispatch, Expression, Case, Pattern, Version)
+  from purr.core.parser use (parse)
+
+  define a rt = "$rt" raw_id / a raw_id
+
+  define ast translate_conservatively =
+    match ast
+      case Name { name } do name text
+
+  define ast translate =
+    match ast
+      case Module { interface, metadata, declarations } do
+        set: ("module" raw_id / "exports" raw_id) to: (["$platform" raw_id] fn: [
+          let: "$rt" raw_id be: ("$platform" raw_id / "runtime" raw_id),
+
+          "$module" rt apply: [
+            interface.name text,
+            ["$self" raw_id] fn: declarations translate
+          ]
+        ])
+
+      # -- DECLARATIONS
+      case Record { name, fields } do
+        "$record" rt apply: [
+          "$self" raw_id,
+          fields map: { x in x translate_conservatively }
+        ]
+
+  
+  define (a is Integer) + (b is Integer) = add a b
