@@ -76,16 +76,16 @@ function Bool(v) {
 exports.Bool = Bool;
 
 
-function Int32(sign, value) {
-  return `$rt.$int32(${_(sign)}, ${_(value)})`;
+function Int(sign, value) {
+  return `$rt.$int(${_(sign)}, ${_(value)})`;
 }
-exports.Int32 = Int32;
+exports.Int = Int;
 
 
-function Dec64(sign, integer, decimal) {
-  return `$rt.$dec64(${_(sign)}, ${_(integer)}, ${_(decimal)})`;
+function Dec(sign, integer, decimal) {
+  return `$rt.$dec(${_(sign)}, ${_(integer)}, ${_(decimal)})`;
 }
-exports.Dec64 = Dec64;
+exports.Dec = Dec;
 
 
 function Text(value) {

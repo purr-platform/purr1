@@ -25,6 +25,7 @@
   "dependencies": {
     "babel-generator": "^6.26.0",
     "babylon": "^6.18.0",
+    "bigdecimal": "^0.6.1",
     "glob": "^7.1.2",
     "immutable": "^3.8.2",
     "moment": "^2.18.1",

@@ -1,10 +1,18 @@
 const util = require('util');
+const { BigInteger } = require('bigdecimal');
 
 const log = (x, ...ys) => {
   if (process.env.DEBUG_PURR) {
     console.log(`(PURR)`, x, ...ys.map(y => util.inspect(y, false, 3, false)));
   }
 }
+
+const logp = (x, ...ys) => {
+  if (process.env.DEBUG_PURR) {
+    console.log(`(PURR)`, x, ...ys);
+  }
+}
+
 
 function isObject(a) {
   return a !== null && typeof a === 'object';
@@ -15,11 +23,27 @@ function eqVector(a, b) {
   &&     a.every((x, i) => eq(x, b[i]));
 }
 
+function isInt(a) {
+  return a instanceof BigInteger;
+}
+
 function eq(a, b) {
   return a == null || b == null               ?   (() => { throw new Error(`Unexpected null/undefined`)})
+  :      isInt(a) && isInt(b)                 ?   a.compareTo(b) === 0
   :      a.equals && b.equals                 ?   a.equals(b)
   :      Array.isArray(a) && Array.isArray(b) ?   eqVector(a, b)
   :      /* else */                               a === b
+}
+
+function show(v) {
+  return v == null               ?     `<Invalid value>`
+  :      typeof v === 'number'   ?     Math.floor(v) === v ? v.toFixed(1) : v
+  :      !isObject(v)            ?     JSON.stringify(v)
+  :      Array.isArray(v)        ?     `[${v.map(show).join(', ')}]`
+  :      isInt(v)                ?     `${v}`
+  :      typeof v === 'function' ?     `<Closure with arity ${v.length}>`
+  :      v.$show                 ?     v.$show()
+  :      /* else */                    `<Unknown value>`;
 }
 
 class World {
@@ -176,6 +200,10 @@ class Thunk {
   invoke() {
     return this.value;
   }
+
+  $show() {
+    return `<Thunk>`;
+  }
 }
 
 class Record {
@@ -214,6 +242,12 @@ class Record {
         throw new Error(`No field ${field} in ${this.id}`);
       }
       return x;
+    };
+    result.$show = () => {
+      const pairs = [...Object.entries(this.values)].map(([k, v]) => {
+        return `${k} = ${show(v)}`;
+      });
+      return `${this.id} { ${pairs.join(', ')} }`;
     };
     return result;
   }
@@ -268,6 +302,12 @@ class Variant {
           throw new Error(`Invalid field ${field} for variant ${this.tag}`);
         }
         return x;
+      },
+      $show() {
+        const pairs = [...Object.entries(this.$values)].map(([k, v]) => {
+          return `${k} = ${show(v)}`;
+        });
+        return `${this.$variant.tag} { ${pairs.join(', ')} }`;
       }
     };
   }
@@ -306,6 +346,10 @@ class Union {
     });
   }
 
+  $show() {
+    return `<Union: ${this.$id} (${Object.keys(this.$variants).join(', ')})>`;
+  }
+
   hasInstance(value) {
     return value === Object(value)
     &&     value.$variant
@@ -333,12 +377,20 @@ class Type {
   hasInstance(value) {
     return value === this.what;
   }
+
+  $show() {
+    return `<Type>`;
+  }
 }
 
 class Multimethod {
   constructor(signature) {
     this.signature = signature;
     this.branches = [];
+  }
+
+  $show() {
+    return `<Multi-method: ${signature}>`;
   }
 
   add(branch) {
@@ -408,11 +460,11 @@ class MultimethodImport {
   }
 
   invoke(...args) {
-    return this.method.value().invoke(...args);
+    return this.method.value.invoke(...args);
   }
 
   specificityFor(args) {
-    return this.method.value().findBranch(args);
+    return this.method.value.findBranch(args);
   }
 }
 
@@ -509,11 +561,16 @@ exports.runtime = function(world) {
     :      /* else */      (() => { throw new Error(`Invalid boolean literal ${v}`) });
   }
 
-  function $int32(sign, value) {
-    return Number(`${sign}${value}`);
+  function $int(sign, value) {
+    const x = new BigInteger(`${value}`);
+    if (sign === '-') {
+      return x.negate();
+    } else {
+      return x;
+    }
   }
 
-  function $dec64(sign, integer, decimal) {
+  function $dec(sign, integer, decimal) {
     return Number(`${sign}${integer}.${decimal || '0'}`);
   }
 
@@ -543,16 +600,16 @@ exports.runtime = function(world) {
   }
 
   function $method_call(scope, sig, args) {
-    log(`Invoking ${sig} with`, args);
+    logp(`Invoking ${sig} with`, show(args));
     const result = scope.at(sig).invoke(...args);
-    log(`${sig} >>> `, result);
+    logp(`${sig} >>> `, show(result));
     return result;
   }
 
   function $call(scope, expr, args) {
-    log(`Calling closure with`, args);
+    logp(`Calling closure with`, show(args));
     const result = expr(...args);
-    log(`>>> `, result);
+    logp(`>>> `, show(result));
     return result;
   }
 
@@ -598,7 +655,7 @@ exports.runtime = function(world) {
     },
 
     $equal(expected) {
-      return (actual) => expected === actual ? {} : null;
+      return (actual) => eq(expected, actual) ? {} : null;
     },
 
     $bind(id) {
@@ -656,18 +713,25 @@ exports.runtime = function(world) {
     }
   };
 
+  let inCheck = false;
   function $assert(scope, test, { line, column, source }) {
     if (!test) {
-      throw new Error(`Assertion failed: ${source}.
+      throw new Error(`Assertion failed: ${source}
 
 At ${scope.getModule().id}, line ${line}, column ${column}`);
+    } else if (inCheck) {
+      console.log(`  ○ ${source}`);
     }
     return test;
   }
 
   function $check(scope, decl, expr) {
     const tests = decl.$tests || [];
-    decl.$tests = [...tests, expr];
+    decl.$tests = [...tests, () => {
+      inCheck = true;
+      expr();
+      inCheck = false;
+    }];
     return decl;
   }
 
@@ -686,8 +750,8 @@ At ${scope.getModule().id}, line ${line}, column ${column}`);
     $union,
     $case,
     $bool,
-    $int32,
-    $dec64,
+    $int,
+    $dec,
     $text,
     $vector,
     $closure,
@@ -703,7 +767,9 @@ At ${scope.getModule().id}, line ${line}, column ${column}`);
     $assert,
     $check,
 
-    eq, World, Module, Scope, Thunk, Record, Variant, Union, Type, Multimethod, MultimethodBranch, MultimethodImport
+    show, eq, isInt, isObject,
+    BigInteger,
+    World, Module, Scope, Thunk, Record, Variant, Union, Type, Multimethod, MultimethodBranch, MultimethodImport
   };
 };
 

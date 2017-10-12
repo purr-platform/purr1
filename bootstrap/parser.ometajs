@@ -21,7 +21,7 @@ function bin(x) {
 
 function src(start, end) {
   return {
-    line: start.line,
+    line: start.line + 1,
     column: start.column,
     span: [start.offset, end.offset],
     source: start.src.slice(start.offset, end.offset)
@@ -122,7 +122,7 @@ ometa PurrParser {
   
   Union = kw('union') ws Id:a (ws unionCase)+:cs -> ['union', a, cs],
   unionCase = kw('case') ws Id:a ws fieldList:fs -> ['case', a, fs]
-            | kw('case') ws Id:a                 -> ['case', a, []],
+            | kw('case') ws Id:a ws '{' ws '}'   -> ['case', a, []],
 
   Import = kw('uses') ws QualId:i ws symbolList:as -> ['use', i, as],
   symbolList = '{' ws binding:a (ws ',' ws binding)*:as ws '}' -> [a].concat(as),
@@ -253,12 +253,13 @@ ometa PurrParser {
   Add = Add:a ws ('+' | '-'):o ws Multiply:b -> ['mcall', bin(o), [a, b]]
       | Multiply,
 
-  Multiply = Multiply:a ws ('*' | '/') ws Unary:b -> ['mcall', bin(o), [a, b]]
+  Multiply = Multiply:a ws ('*' | '/'):o ws Unary:b -> ['mcall', bin(o), [a, b]]
            | Unary,
 
-  Unary = Unary:a ws Id:i ~':' -> ['mcall', '_ ' + i[1], [a]]
-        | Unary:a ws exprList:es -> ['call', a, es]
+  Unary = Unary:a ws Id:i ~':'                 -> ['mcall', '_ ' + i[1], [a]]
+        | Unary:a ws exprList:es               -> ['call', a, es]
         | Unary:a ws '{' ws fieldMap:fs ws '}' -> ['new', a, fs]
+        | Unary:a ws '{' ws '}'                -> ['new', a, []]
         | Postfix,
 
   fieldMapKV = Id:a ws '=' ws Expr:e -> [a, e],

@@ -25,8 +25,8 @@ ometa PurrCompiler {
 
   // --- Values
   | [#bool :v]                              -> g.Bool(v)
-  | [#int :s :v]                            -> g.Int32(s, v)
-  | [#dec :s :i :d]                         -> g.Dec64(s, i, d)
+  | [#int :s :v]                            -> g.Int(s, v)
+  | [#dec :s :i :d]                         -> g.Dec(s, i, d)
   | [#text :v]                              -> g.Text(v)
   | [#vec [compile*:xs]]                    -> g.Vector(xs)
   | [#closure :args compile:expr]           -> g.Closure(args, expr)

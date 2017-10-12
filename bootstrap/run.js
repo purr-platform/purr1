@@ -40,7 +40,7 @@ function loadDir(dir, pattern) {
 }
 
 function indent(s) {
-  return s.split(/\r\n|\r|\n/).map(x => `  | ${x}`).join('\n');
+  return s.split(/\r\n|\r|\n/).map(x => `   | ${x}`).join('\n');
 }
 
 loadDir(path.join(__dirname, '../source/purr'), '**/*.purr');
@@ -65,10 +65,12 @@ if (argv.run) {
             try {
               f();
             } catch (e) {
-              console.error(`${indent(e.message)}\n`);
+              const message = e.stack || String(e);
+              console.error(`  X\n${indent(message)}\n`);
               failures.push(e);
             }
           });
+          console.log('');
         }
       }
     }

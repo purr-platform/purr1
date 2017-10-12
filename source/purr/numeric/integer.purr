@@ -1,0 +1,69 @@
+language purr.core.kernel
+
+module purr.numeric.integer
+  provides { 
+    Integer,
+    _ === _, _ =/= _,
+    _ + _, _ - _, _ * _, _ / _
+  }
+  uses purr.base.optional { Optional, _ nothing, _ some: _ }
+  foreign "../primitives" as prim
+
+
+  define Integer = prim.Int.Integer
+
+  #: True if both integers are equal
+  define (a is Integer) === (b is Integer) =
+    prim.Int.eq(a, b)
+  where
+    assert 0 === 0;
+    assert 1 === 1;
+    assert 1000 === 1000
+
+  #: True if both integers are different
+  define (a is Integer) =/= (b is Integer) =
+    prim.Int.neq(a, b)
+  where
+    assert 1 =/= 0;
+    assert 1000 =/= 1;
+    assert 2 =/= 20
+
+  #: Arithmetic addition
+  define (a is Integer) + (b is Integer) =
+    prim.Int.add(a, b)
+  where
+    assert (1 + 0) === 1;
+    assert (2 + 2) === 4;
+    assert (2 + -1) === 1
+
+  #: Arithmetic subtraction
+  define (a is Integer) - (b is Integer) =
+    prim.Int.sub(a, b)
+  where
+    assert (1 - 0) ===  1;
+    assert (1 - 1) ===  0;
+    assert (1 - 2) === -1
+
+  #: Arithmetic multiplication
+  define (a is Integer) * (b is Integer) =
+    prim.Int.mul(a, b)
+  where
+    assert (2 * 0) === 0;
+    assert (2 * 1) === 2;
+    assert (2 * 2) === 4
+
+  #: Arithmetic division
+  define (a is Integer) / (b is Integer) =
+    if b === 0 then
+      Optional nothing
+    else
+      Optional some: prim.Int.div(a, b)
+  where
+    let is_nothing = { x in match x
+                              case Optional.Nothing{} do true
+                              case _                  do false }
+    in
+    assert is_nothing(2 / 0);
+    assert (0 / 2).value === 0;
+    assert (4 / 2).value === 2;
+    assert (4 / 3).value === 1

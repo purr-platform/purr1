@@ -39,17 +39,44 @@ module.exports = function($platform) {
     not: (a) => !a
   };
   //endregion
+
+
+  //region Integer
+  const Int = {
+    $project: (k) => get('Int', Int, k),
+    Integer: {
+      $project: (k) => get('Integer', Int.Integer, k),
+      hasInstance: (x) => x instanceof $rt.BigInteger,
+      type: {
+        hasInstance: (x) => x === Int.Integer
+      }
+    },
+
+    add: (a, b) => a.add(b),
+    eq: (a, b) => a.compareTo(b) === 0,
+    neq: (a, b) => a.compareTo(b) !== 0,
+    div: (a, b) => a.divide(b),
+    mul: (a, b) => a.multiply(b),
+    not: (a) => a.negate(),
+    sub: (a, b) => a.subtract(b)
+  };
+  //endregion
   
   const prim = {
     $project: (k) => get('<Purr Primitives>', prim, k),
     Bool,
+    Int,
 
     
-    display: (x) => 
-      console.log(util.inspect(x, false, Infinity, true)),
+    display: (x) => console.log($rt.show(x)),
     
     trace: (x) => { 
-      console.log(`(TRACE)\n`, util.inspect(x, false, 5, true), '\n---'); 
+      console.log('(TRACE)');
+      if (process.env.TRACE_JS) {
+        console.log(util.inspect(x, false, 5, true));
+      }
+      console.log($rt.show(x));
+      console.log('---');
       return x 
     },
     
