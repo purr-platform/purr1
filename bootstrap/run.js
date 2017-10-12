@@ -2,10 +2,7 @@ const argv = require('optimist')
   .usage('Usage: $0 [--root <dir>] (--run <id> | --test [id])')
   .argv;
 
-  console.log(argv);
-  process.exit(1);
-
-if (typeof argv.run !== 'string' || !argv.test) {
+if ((typeof argv.run !== 'string') && !argv.test) {
   throw new Error(`Needs to provide a test or run option`);
 }
 
@@ -30,15 +27,24 @@ Module._extensions['.purr'] = function(module, filename) {
   module._compile(js, filename);
 };
 
-function loadDir(dir) {
-  const files = glob("**/*.purr", { cwd: dir, absolute: true });
+const loadSet = new Set();
+
+function loadDir(dir, pattern) {
+  const files = glob(pattern, { cwd: dir, absolute: true });
   for (const file of files) {
-    require(file)(platform);
+    if (!loadSet.has(file)) {
+      require(file)(platform);
+      loadSet.add(file);
+    }
   }
 }
 
-loadDir(path.join(__dirname, '../source/purr'));
-loadDir(dir);
+function indent(s) {
+  return s.split(/\r\n|\r|\n/).map(x => `  | ${x}`).join('\n');
+}
+
+loadDir(path.join(__dirname, '../source/purr'), '**/*.purr');
+loadDir(root, '**/*.purr');
 world.start();
 
 if (argv.run) {
@@ -47,16 +53,19 @@ if (argv.run) {
   let failures = [];
   let tests = 0;
   const doTest = (m) => typeof argv.test === 'string' ? m.id === argv.test : true;
-  for (const m of world.modules.entries()) {
+  for (const m of world.modules.values()) {
     if (doTest(m)) {
+      console.log(`\nRunning tests for ${m.id}`);
+      console.log('='.repeat(18 + m.id.length));
       for (const [k, v] of Object.entries(m.scope.bindings)) {
         if (v.$tests) {
+          console.log(`• ${k} (${v.$tests.length} tests)`);
           v.$tests.forEach(f => {
             ++tests;
             try {
               f();
             } catch (e) {
-              console.error(`${k}: ${e.message}`);
+              console.error(`${indent(e.message)}\n`);
               failures.push(e);
             }
           });
@@ -64,6 +73,7 @@ if (argv.run) {
       }
     }
   }
+  console.log('');
   console.log('---');
   console.log(`Tests:  ${tests}`);
   console.log(`Passed: ${tests - failures.length}`);

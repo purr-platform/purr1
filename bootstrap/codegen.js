@@ -23,7 +23,7 @@ exports.Module = Module;
 
 function Record(id, fields) {
   const fs = fields.map(x => x[1]);
-  return `$rt.$record($self, ${_(id)}, ${_(fs)});`;
+  return `$rt.$record($self, ${_(id)}, ${_(fs)})`;
 }
 exports.Record = Record;
 
@@ -34,7 +34,7 @@ function Union(id, cases) {
   
   return `$rt.$union($self, ${_(id)}, [
       ${cases.map(makeCase).join(',\n      ')}
-    ]);`
+    ])`
 }
 exports.Union = Union;
 
@@ -46,7 +46,7 @@ exports.Public = Public;
 
 
 function Use(id, symbols) {
-  return `$rt.$use($self, ${_(id)}, ${_(symbols)})`;
+  return `$rt.$use($self, ${_(id)}, ${_(symbols)});`;
 }
 exports.Use = Use;
 
@@ -59,7 +59,7 @@ function Method(sig, args, expr) {
         $rt.$scope_apply_params($self, ${_(args.map(x => x[0]))}, $in);
         return ${expr};
       });
-    });`
+    })`
 }
 exports.Method = Method;
 
@@ -205,24 +205,24 @@ exports.PatternVectorSpread = PatternVectorSpread;
 
 
 function FFI(path, id) {
-  return `$self.put(${_(id)}, require(${(path)}));`;
+  return `$self.put(${_(id)}, require(${(path)})($platform));`;
 }
 exports.FFI = FFI;
 
 
 function Seq(a, b) {
-  return `(${a}), (${b})`;
+  return `((${a}), (${b}))`;
 }
 exports.Seq = Seq;
 
 
 function Assert(e, s) {
-  return `$rt.assert($self, ${e}, ${_(s)})`;
+  return `$rt.$assert($self, ${e}, ${_(s)})`;
 }
 exports.Assert = Assert;
 
 
 function Check(d, e) {
-  return `$rt.check($self, ${d}, () => { ${e} })`;
+  return `$rt.$check($self, ${d}, () => { ${e} })`;
 }
 exports.Check = Check;

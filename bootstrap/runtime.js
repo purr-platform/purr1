@@ -665,7 +665,7 @@ At ${scope.getModule().id}, line ${line}, column ${column}`);
     return test;
   }
 
-  function $check(decl, expr) {
+  function $check(scope, decl, expr) {
     const tests = decl.$tests || [];
     decl.$tests = [...tests, expr];
     return decl;
@@ -701,7 +701,9 @@ At ${scope.getModule().id}, line ${line}, column ${column}`);
     $match_case,
     $pattern,
     $assert,
-    $check
+    $check,
+
+    eq, World, Module, Scope, Thunk, Record, Variant, Union, Type, Multimethod, MultimethodBranch, MultimethodImport
   };
 };
 

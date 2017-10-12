@@ -112,7 +112,7 @@ ometa PurrParser {
 
 
   // ---- Declarations
-  Declaration = Decorable:a ws kw('check') ws Expr:b -> ['check', a, b]
+  Declaration = Decorable:a ws kw('where') ws Expr:b -> ['check', a, b]
               | AnyDecl,
 
   Decorable = Record | Union | Method,
