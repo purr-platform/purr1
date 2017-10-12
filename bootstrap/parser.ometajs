@@ -34,7 +34,10 @@ ometa PurrParser {
   Id = <IdStart IdRest*>:x ?isValid(x) -> ['id', x],
   name = <IdStart IdRest*>:x -> x,
   Keyword = <IdStart IdRest*>:x ':' -> ['kw', x],
-  Binary = (seq('<=') | seq('>=') | '>' | '<' | seq('===') | seq('=/=') | '/' | '*' | '+' | '-' | seq('and') | seq('or')):a -> ['sym', a],
+  Binary = ( seq('->') | seq('<-') | seq('>>') | seq('<<') | seq('==>')
+           | seq('<=') | seq('>=') | '>' | '<' | seq('===') | seq('=/=') 
+           | '/' | '*' | '+' | '-' | seq('and') | seq('or')
+           ):a -> ['sym', a],
 
 
   KeywordSel = Keyword:k ignored+ '_' -> k,
@@ -125,7 +128,7 @@ ometa PurrParser {
   Expr = IfElse
        | Let
        | Match
-       | KwCall,
+       | Arrow,
 
   IfElse = kw('if') ws Expr:c ws kw('then') ws Expr:t ws kw('else') ws Expr:e -> ['if', c, t, e],
 
@@ -158,6 +161,18 @@ ometa PurrParser {
                  | Id:a ws kw('as') ws Id:b -> [a, ['patt_bind', b]]
                  | Id:a -> [a, ['patt_bind', a]],
   fieldPattern = fieldPatternKV:x (ws ',' ws fieldPatternKV)*:xs -> [x].concat(xs),
+
+
+  Arrow = Arrow:a ws seq('==>') ws TinyArrow:b -> ['mcall', '_ ==> _', [a, b]]
+        | TinyArrow,
+  
+  TinyArrow = TinyArrow:a ws seq('<-') ws Compose:b -> ['mcall', '_ <- _', [a, b]]
+            | TinyArrow:a ws seq('->') ws Compose:b -> ['mcall', '_ -> _', [a, b]]
+            | Compose,
+
+  Compose = Compose:a ws seq('>>') ws KwCall:b -> ['mcall', '_ >> _', [a, b]]
+          | Compose:a ws seq('<<') ws KwCall:b -> ['mcall', '_ << _', [a, b]]
+          | KwCall,
 
   kwApp = Keyword:k ws Logical:v -> [k, v],
   KwCall = Logical:a (ws kwApp)+:as -> ['mcall', '_ ' + sigKw(as), [a].concat(sigArg(as))]
