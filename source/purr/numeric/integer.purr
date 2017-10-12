@@ -52,6 +52,7 @@ module purr.numeric.integer
     assert (2 * 1) === 2;
     assert (2 * 2) === 4
 
+  #FIXME: this should return an arbitrary-precision rational
   #: Arithmetic division
   define (a is Integer) / (b is Integer) =
     if b === 0 then
