@@ -1,6 +1,6 @@
 var reserved = [
   'module', 'where', 'record', 'union', 'case', 'from', 'use', 'public', 'do', 'in', 'if', 'then', 'else', 'match',
-  'and', 'or', 'not', 'define', 'true', 'false', 'is', 'foreign', 'let'
+  'and', 'or', 'not', 'define', 'true', 'false', 'is', 'foreign', 'let', 'type'
 ];
 
 function isValid(x) {
@@ -8,11 +8,15 @@ function isValid(x) {
 }
 
 function sigKw(xs) {
-  return xs.map(function(x){ return x[0][1] + ':' }).join('');
+  return xs.map(function(x){ return x[0][1] + ': _' }).join(' ');
 }
 
 function sigArg(xs) {
   return xs.map(function(x){ return x[1] });
+}
+
+function bin(x) {
+  return '_ ' + x + ' _';
 }
 
 ometa PurrParser {
@@ -28,22 +32,29 @@ ometa PurrParser {
   IdRest  = letter | '_' | digit,
   
   Id = <IdStart IdRest*>:x ?isValid(x) -> ['id', x],
+  name = <IdStart IdRest*>:x -> x,
   Keyword = <IdStart IdRest*>:x ':' -> ['kw', x],
-  Binary = (seq('<=') | seq('>=') | '>' | '<' | seq('===') | seq('=/=') | '/' | '*' | '+' | '-' | seq('and') | seq('or') | seq('not')):a -> ['sym', a],
+  Binary = (seq('<=') | seq('>=') | '>' | '<' | seq('===') | seq('=/=') | '/' | '*' | '+' | '-' | seq('and') | seq('or')):a -> ['sym', a],
 
-  selector = Binary
-           | seq('_ ')?:x Keyword+:xs -> ['kw', (x || '') + xs.map(function(x){ return x[1] + ':' }).join('')]
+
+  KeywordSel = Keyword:k ignored+ '_' -> k,
+  selector = '_' ignored+ Binary:b ignored+ '_'  -> ['sym', '_ ' + b[1] + ' _']
+           | '_'?:x ignored+ (ws KeywordSel)+:xs -> ['kw', (x ? x + ' ' : '') + xs.map(function(x){ return x[1] + ': _' }).join(' ')]
+           | '_' ignored+ Id:i                   -> ['id', '_ ' + i[1]]
+           | kw('not') ignored+ '_'              -> ['id', 'not _']
            | Id,
 
 
-  QualId = Id:a ('.' Id)*:as -> ['qualid', [a].concat(as)],
+  QualId = name:a ('.' name)*:as -> ['qualid', [a].concat(as)],
   Version = digits:a '.' digits:b -> ['version', a, b],
 
   fieldList = '{' ws '}' -> []
             | '{' ws Id:a (ws ',' ws Id)*:as ws '}' -> [a].concat(as),
 
 
-  fieldListR = Id:a (ws ',' ws Id)*:as -> [a].concat(as),
+  Param = Id:a -> a
+        | '_'  -> ['id', '__'],
+  fieldListR = Param:a (ws ',' ws Param)*:as -> [a].concat(as),
 
   // ----
   Module = kw('module') ws QualId:i ws kw('where') (ws Declaration)*:ds -> ['mod', i, ds],
@@ -68,15 +79,15 @@ ometa PurrParser {
   Export = kw('public') ws exportList:as -> ['public', as],
 
   Method = kw('define') ws paramPattern:p ws '=' ws Expr:e -> ['method', p, e],
-  paramPattern = seq('not') ws MethodParam:b                      -> ['not', [b]]
-               | MethodParam:a ws Binary:b ws MethodParam:c       -> [b[1], [a, c]]
+  paramPattern = seq('not') ws MethodParam:b                      -> ['not _', [b]]
+               | MethodParam:a ws Binary:b ws MethodParam:c       -> ['_ ' + b[1] + ' _', [a, c]]
                | MethodParam:a ws keywordArgs:as                  -> ['_ ' + sigKw(as), [a].concat(sigArg(as))]
                | keywordArgs:as                                   -> [sigKw(as), sigArg(as)]
-               | MethodParam:a ws Id:b                            -> [b[1], [a]]
+               | MethodParam:a ws Id:b                            -> ['_ ' + b[1], [a]]
                | Id:a                                             -> [a[1], []],
   
-  MethodParam = Id:a -> [a, ['any']]
-              | '(' ws Id:a ws kw('is') ws Expr:b ws ')' -> [a, b],
+  MethodParam = Param:a -> [a, ['any']]
+              | '(' ws Param:a ws kw('is') ws Expr:b ws ')' -> [a, b],
 
   keywordArgs = (ws Keyword:k ws MethodParam:n -> [k, n])+,
 
@@ -154,22 +165,22 @@ ometa PurrParser {
          | Logical,
 
 
-  Logical = Logical:a ws (kw('and') | kw('or')):o ws Negate:b -> ['mcall', o, [a, b]]
+  Logical = Logical:a ws (kw('and') | kw('or')):o ws Negate:b -> ['mcall', bin(o), [a, b]]
           | Negate,
 
-  Negate = kw('not') ws Relational:e -> ['mcall', 'not', [e]]
+  Negate = kw('not') ws Relational:e -> ['mcall', 'not _', [e]]
          | Relational,
 
-  Relational = Relational:a ws (seq('===') | seq('=/=') | seq('>=') | seq('<=') | seq('>') | seq('<')):o ws Add:b -> ['mcall', o, [a, b]]
+  Relational = Relational:a ws (seq('===') | seq('=/=') | seq('>=') | seq('<=') | seq('>') | seq('<')):o ws Add:b -> ['mcall', bin(o), [a, b]]
              | Add,
 
-  Add = Add:a ws ('+' | '-'):o ws Multiply:b -> ['mcall', o, [a, b]]
+  Add = Add:a ws ('+' | '-'):o ws Multiply:b -> ['mcall', bin(o), [a, b]]
       | Multiply,
 
-  Multiply = Multiply:a ws ('*' | '/') ws Unary:b -> ['mcall', o, [a, b]]
+  Multiply = Multiply:a ws ('*' | '/') ws Unary:b -> ['mcall', bin(o), [a, b]]
            | Unary,
 
-  Unary = Unary:a ws Id:i ~':' -> ['mcall', i[1], [a]]
+  Unary = Unary:a ws Id:i ~':' -> ['mcall', '_ ' + i[1], [a]]
         | Unary:a ws exprList:es -> ['call', a, es]
         | Unary:a ws '{' ws fieldMap:fs ws '}' -> ['new', a, fs]
         | Postfix,
@@ -180,7 +191,7 @@ ometa PurrParser {
   exprList = '(' ws ')' -> []
            | '(' Expr:e (ws ',' ws Expr)*:es ws ')' -> [e].concat(es),
 
-  Postfix = Postfix:r ws '.' ws Id:a -> ['proj', r, a]
+  Postfix = Postfix:r ws '.' ws name:a -> ['proj', r, a]
           | Primary,
 
   Primary = Values

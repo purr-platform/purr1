@@ -206,6 +206,9 @@ class Record {
       &&     this.fields.every(k => eq(result.$data[k], that.$data[k]));
     };
     result.$project = (field) => {
+      if (field === 'type') {
+        return new Type(this);
+      }
       const x = result.$data[field];
       if (x == null) {
         throw new Error(`No field ${field} in ${this.id}`);
@@ -257,6 +260,9 @@ class Variant {
         &&     this.$values.every((x, i) => eq(x, that.$values[i]));
       },
       $project: (field) => {
+        if (field === 'type') {
+          return new Type(this);
+        }
         const x = map[field];
         if (x == null) {
           throw new Error(`Invalid field ${field} for variant ${this.tag}`);
@@ -308,11 +314,24 @@ class Union {
   }
 
   $project(field) {
+    if (field === 'type') {
+      return new Type(this);
+    }
     const x = this.$variants[field];
     if (x == null) {
       throw new Error(`No variant ${field} in union ${this.$id}`);
     }
     return x;
+  }
+}
+
+class Type {
+  constructor(what) {
+    this.what = what;
+  }
+
+  hasInstance(value) {
+    return value === this.what;
   }
 }
 
@@ -327,22 +346,28 @@ class Multimethod {
   }
 
   invoke(...args) {
-    let method;
-    let specificity = -1;
-
-    for (const branch of this.branches) {
-      const branchSpec = branch.specificityFor(args);
-      if (branchSpec > specificity) {
-        method = branch;
-        specificity = branchSpec;
-      }
-    }
+    const [method, specificity] = this.findBranch(args);
 
     if (!method) {
       throw new Error(`No method matched the arguments for ${this.signature}`);
     } else {
       return method.invoke(...args);
     }
+  }
+
+  findBranch(args) {
+    let method = null;
+    let specificity = -1;
+
+    for (const branch of this.branches) {
+      const [meth, branchSpec] = branch.specificityFor(args);
+      if (branchSpec > specificity) {
+        method = meth;
+        specificity = branchSpec;
+      }
+    }
+
+    return [method, specificity];
   }
 }
 
@@ -373,7 +398,21 @@ class MultimethodBranch {
       index += 1;
     }
 
-    return result;
+    return [this, result];
+  }
+}
+
+class MultimethodImport {
+  constructor(method) {
+    this.method = method;
+  }
+
+  invoke(...args) {
+    return this.method.value().invoke(...args);
+  }
+
+  specificityFor(args) {
+    return this.method.value().findBranch(args);
   }
 }
 
@@ -396,7 +435,13 @@ exports.runtime = function(world) {
   function $use(scope, id, names) {
     log(`Requiring ${id} from ${scope.id} (only ${names.map(x => x[0]).join(', ')})`);
     for (const [name, alias] of names) {
-      scope.put(alias, new Thunk(() => world.find(id).atPublic(name)));
+      if (/\b_\b/.test(name)) {
+        const method = scope.has(name) ? scope.getScope().at(name) : new Multimethod(name);
+        method.add(new MultimethodImport(new Thunk(() => world.find(id).atPublic(name))));
+        scope.put(alias, method);
+      } else {
+        scope.put(alias, new Thunk(() => world.find(id).atPublic(name)));
+      }
     }
   }
 

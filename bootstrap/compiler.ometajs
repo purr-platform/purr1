@@ -3,7 +3,7 @@ var g = require('./codegen');
 ometa PurrCompiler {
   any :a -> a,
 
-  qualid  = #qualid [any*:id] -> id.map(function(x){ return x[1] }).join('.'),
+  qualid  = #qualid [any*:id] -> id.join('.'),
 
   id = [#id :i] -> i,
   fmap = [id:i compile:e] -> [i, e],
@@ -38,7 +38,7 @@ ometa PurrCompiler {
   | [#mcall :sig [compile*:args]]          -> g.MCall(sig, args)
   | [#new compile:a [fmap*:fs]]            -> g.New(a, fs)
   | [#call compile:a [compile*:args]]      -> g.Call(a, args)
-  | [#proj compile:r id:a]                 -> g.Proj(r, a)
+  | [#proj compile:r :a]                   -> g.Proj(r, a)
   | [#deref id:a]                          -> g.Deref(a),
 
 
