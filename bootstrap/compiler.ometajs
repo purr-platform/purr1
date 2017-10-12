@@ -21,6 +21,7 @@ ometa PurrCompiler {
   | [#method [:sig []] compile:expr]                          -> g.Thunk(sig, expr)
   | [#method [:sig [compile_meth_param*:args]] compile:expr]  -> g.Method(sig, args, expr)
   | [#ffi compile:p id:i]                                     -> g.FFI(p, i)
+  | [#check compile:d compile:e]                              -> g.Check(d, e)
 
   // --- Values
   | [#bool :v]                              -> g.Bool(v)
@@ -40,7 +41,8 @@ ometa PurrCompiler {
   | [#new compile:a [fmap*:fs]]            -> g.New(a, fs)
   | [#call compile:a [compile*:args]]      -> g.Call(a, args)
   | [#proj compile:r :a]                   -> g.Proj(r, a)
-  | [#deref id:a]                          -> g.Deref(a),
+  | [#deref id:a]                          -> g.Deref(a)
+  | [#assert compile:e :s]                 -> g.Assert(e, s),
 
 
   compile_let = [id:i compile:v] -> [i, v],

@@ -214,3 +214,15 @@ function Seq(a, b) {
   return `(${a}), (${b})`;
 }
 exports.Seq = Seq;
+
+
+function Assert(e, s) {
+  return `$rt.assert($self, ${e}, ${_(s)})`;
+}
+exports.Assert = Assert;
+
+
+function Check(d, e) {
+  return `$rt.check($self, ${d}, () => { ${e} })`;
+}
+exports.Check = Check;

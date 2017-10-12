@@ -460,13 +460,16 @@ exports.runtime = function(world) {
     const branch = new MultimethodBranch(params, fn);
     method.add(branch);
     scope.put(name, method);
+    return method;
   }
 
   function $thunk(scope, name, fn) {
     if (scope.has(name)) {
       throw new Error(`Duplicated ${name} in ${scope.id}`);
     }
-    scope.put(name, new Thunk(fn));
+    const thunk = new Thunk(fn);
+    scope.put(name, thunk);
+    return thunk;
   }
 
   function $scope(base, closure) {
@@ -484,13 +487,16 @@ exports.runtime = function(world) {
 
   function $record(scope, id, fields) {
     log(`Defining a record ${id} in ${scope.id} with ${fields.join(', ')}`);
-    scope.put(id, new Record(id, fields));
+    const record = new Record(id, fields)
+    scope.put(id, record);
+    return record;
   }
 
   function $union(scope, id, cases) {
     log(`Defining an union ${id} in ${scope.id} with cases ${cases.map(x => x.tag).join(', ')}`);
     const union = new Union(id, cases);
     scope.put(id, union);
+    return union;
   }
 
   function $case(tag, fields) {
@@ -650,6 +656,21 @@ exports.runtime = function(world) {
     }
   };
 
+  function $assert(scope, test, { line, column, source }) {
+    if (!test) {
+      throw new Error(`Assertion failed: ${source}.
+
+At ${scope.getModule().id}, line ${line}, column ${column}`);
+    }
+    return test;
+  }
+
+  function $check(decl, expr) {
+    const tests = decl.$tests || [];
+    decl.$tests = [...tests, expr];
+    return decl;
+  }
+
 
   return {
     $module,
@@ -678,7 +699,9 @@ exports.runtime = function(world) {
     $project,
     $match,
     $match_case,
-    $pattern
+    $pattern,
+    $assert,
+    $check
   };
 };
 

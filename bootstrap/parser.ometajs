@@ -1,6 +1,6 @@
 var reserved = [
   'module', 'where', 'record', 'union', 'case', 'do', 'in', 'if', 'then', 'else', 'match',
-  'and', 'or', 'not', 'define', 'true', 'false', 'is', 'foreign', 'let', 'type', 'provides', 'uses'
+  'and', 'or', 'not', 'define', 'true', 'false', 'is', 'foreign', 'let', 'type', 'provides', 'uses', 'assert'
 ];
 
 function isValid(x) {
@@ -19,7 +19,55 @@ function bin(x) {
   return '_ ' + x + ' _';
 }
 
+function src(start, end) {
+  return {
+    line: start.line,
+    column: start.column,
+    span: [start.offset, end.offset],
+    source: start.src.slice(start.offset, end.offset)
+  }
+}
+
+function computePosition(source, offset, lastOffset, lastLine) {
+  var column = 1;
+  var lines = 0;
+  lastOffset = lastOffset || 0;
+  lastLine = lastLine || 0;
+  var i = lastOffset;
+  while (i < offset) {
+    var c = source.charAt(i);
+    if ((c === '\n' && source.charAt(i + 1) === '\r') || (c === '\r' && source.charAt(i + 1) === '\n')) {
+      i += 2;
+      column = 1;
+      lines += 1;
+    } else if (c === '\n' || c === '\r') {
+      i += 1;
+      column = 1;
+      lines += 1;
+    } else {
+      column += 1;
+      i += 1;
+    }
+  }
+  return {
+    column: column,
+    line: lastLine + lines + 1
+  }
+}
+
 ometa PurrParser {
+  pos = ?(true) -> {
+    var position = computePosition(this._source, this._offset, this.__last_offset, this.__last_line_computed);
+    this.__last_line_computed = position.line - 1;
+    this.__last_offset = this._offset;
+    return {
+      src: this._source, offset:
+      this._offset,
+      line: position.line,
+      column: position.column
+    };
+  },
+
   space = /\s/,
   ignored = space | comment,
   comment = fromTo('#', '\n'):a -> a.slice(2),
@@ -64,7 +112,11 @@ ometa PurrParser {
 
 
   // ---- Declarations
-  Declaration = Record | Union | Import | Export | Method,
+  Declaration = Decorable:a ws kw('check') ws Expr:b -> ['check', a, b]
+              | AnyDecl,
+
+  Decorable = Record | Union | Method,
+  AnyDecl = Import | Export | Decorable,
 
   Record = kw('record') ws Id:a ws fieldList:fs -> ['record', a, fs],
   
@@ -167,7 +219,10 @@ ometa PurrParser {
            | Pipe,
 
   Pipe = Pipe:a ws seq('|>') ws Arrow:b -> ['call', b, [a]]
-       | Arrow,
+       | Assert,
+
+  Assert = kw('assert') ws pos:sp Arrow:b pos:ep -> ['assert', b, src(sp, ep)]
+         | Arrow,
 
   Arrow = Arrow:a ws seq('==>') ws TinyArrow:b -> ['mcall', '_ ==> _', [a, b]]
         | TinyArrow,
