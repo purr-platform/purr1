@@ -128,7 +128,7 @@ ometa PurrParser {
   Expr = IfElse
        | Let
        | Match
-       | Pipe,
+       | Sequence,
 
   IfElse = kw('if') ws Expr:c ws kw('then') ws Expr:t ws kw('else') ws Expr:e -> ['if', c, t, e],
 
@@ -162,9 +162,12 @@ ometa PurrParser {
                  | Id:a -> [a, ['patt_bind', a]],
   fieldPattern = fieldPatternKV:x (ws ',' ws fieldPatternKV)*:xs -> [x].concat(xs),
 
+
+  Sequence = Sequence:a ws ';' ws Pipe:b -> ['seq', a, b]
+           | Pipe,
+
   Pipe = Pipe:a ws seq('|>') ws Arrow:b -> ['call', b, [a]]
        | Arrow,
-
 
   Arrow = Arrow:a ws seq('==>') ws TinyArrow:b -> ['mcall', '_ ==> _', [a, b]]
         | TinyArrow,

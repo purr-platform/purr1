@@ -35,6 +35,7 @@ ometa PurrCompiler {
   | [#let [compile_let*:ls] compile:e]     -> g.Let(ls, e)
   | [#match compile:e [compile*:cs]]       -> g.Match(e, cs)
   | [#case compile_pattern:p compile:e]    -> g.Case(p, e)
+  | [#seq compile:a compile:b]             -> g.Seq(a, b)
   | [#mcall :sig [compile*:args]]          -> g.MCall(sig, args)
   | [#new compile:a [fmap*:fs]]            -> g.New(a, fs)
   | [#call compile:a [compile*:args]]      -> g.Call(a, args)

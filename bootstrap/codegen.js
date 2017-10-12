@@ -208,3 +208,9 @@ function FFI(path, id) {
   return `$self.put(${_(id)}, require(${(path)}));`;
 }
 exports.FFI = FFI;
+
+
+function Seq(a, b) {
+  return `(${a}), (${b})`;
+}
+exports.Seq = Seq;
