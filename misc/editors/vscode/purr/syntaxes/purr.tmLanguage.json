@@ -4,7 +4,7 @@
   "patterns": [
     {
       "name": "keyword.control.purr",
-      "match": "(?<![a-zA-Z0-9_\\.\\^])(module|where|record|union|case|from|use|public|do|let|in|if|then|else|match|define|as|is|foreign)(?![a-zA-Z0-9_])"
+      "match": "(?<![a-zA-Z0-9_\\.\\^])(module|record|union|case|uses|provides|do|let|in|if|then|else|match|define|as|is|foreign)(?![a-zA-Z0-9_])"
     },
     {
       "name": "constant.language.purr",

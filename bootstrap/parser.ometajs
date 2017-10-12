@@ -1,6 +1,6 @@
 var reserved = [
-  'module', 'where', 'record', 'union', 'case', 'from', 'use', 'public', 'do', 'in', 'if', 'then', 'else', 'match',
-  'and', 'or', 'not', 'define', 'true', 'false', 'is', 'foreign', 'let', 'type'
+  'module', 'where', 'record', 'union', 'case', 'do', 'in', 'if', 'then', 'else', 'match',
+  'and', 'or', 'not', 'define', 'true', 'false', 'is', 'foreign', 'let', 'type', 'provides', 'uses'
 ];
 
 function isValid(x) {
@@ -72,14 +72,14 @@ ometa PurrParser {
   unionCase = kw('case') ws Id:a ws fieldList:fs -> ['case', a, fs]
             | kw('case') ws Id:a                 -> ['case', a, []],
 
-  Import = kw('from') ws QualId:i ws kw('use') ws symbolList:as -> ['use', i, as],
-  symbolList = '(' ws binding:a (ws ',' ws binding)*:as ws ')' -> [a].concat(as),
-  exportList = '(' ws selector:a (ws ',' ws selector)*:as ws ')' -> [a].concat(as),
+  Import = kw('uses') ws QualId:i ws symbolList:as -> ['use', i, as],
+  symbolList = '{' ws binding:a (ws ',' ws binding)*:as ws '}' -> [a].concat(as),
+  exportList = '{' ws selector:a (ws ',' ws selector)*:as ws '}' -> [a].concat(as),
 
   binding = selector:a ws kw('as') ws selector:b -> [a[1], b[1]]
           | selector:a -> [a[1], a[1]],
 
-  Export = kw('public') ws exportList:as -> ['public', as],
+  Export = kw('provides') ws exportList:as -> ['public', as],
 
   Method = kw('define') ws paramPattern:p ws '=' ws Expr:e -> ['method', p, e],
   paramPattern = seq('not') ws MethodParam:b                      -> ['not _', [b]]
