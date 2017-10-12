@@ -1,6 +1,6 @@
 var reserved = [
   'module', 'where', 'record', 'union', 'case', 'from', 'use', 'public', 'do', 'in', 'if', 'then', 'else', 'match',
-  'and', 'or', 'not', 'define', 'true', 'false', 'is', 'foreign'
+  'and', 'or', 'not', 'define', 'true', 'false', 'is', 'foreign', 'let'
 ];
 
 function isValid(x) {
@@ -118,7 +118,8 @@ ometa PurrParser {
 
   IfElse = kw('if') ws Expr:c ws kw('then') ws Expr:t ws kw('else') ws Expr:e -> ['if', c, t, e],
 
-  Let = kw('let') ws Id:i ws '=' ws Expr:e ws kw('in') ws Expr:b -> ['let', i, e, b],
+  Let = (ws LetBinding)+:ls ws kw('in') ws Expr:b -> ['let', ls, b],
+  LetBinding = kw('let') ws Id:i ws '=' ws Expr:e -> [i, e],
 
   Match = kw('match') ws Expr:e (ws matchCase)+:cs -> ['match', e, cs],
 

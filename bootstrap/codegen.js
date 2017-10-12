@@ -117,8 +117,8 @@ function IfElse(test, consequent, alternate) {
 exports.IfElse = IfElse;
 
 
-function Let(id, value, expr) {
-  return `$rt.$let($self, ${_(id)}, ${value}, ($self) => ${expr})`;
+function Let(bindings, expr) {
+  return bindings.reduceRight((expr, [id, value]) => `$rt.$let($self, ${_(id)}, ${value}, ($self) => ${expr})`, expr);
 }
 exports.Let = Let;
 
