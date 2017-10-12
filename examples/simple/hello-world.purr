@@ -1,0 +1,7 @@
+language purr.core
+
+module examples.simple.hello_world
+  provides { main }
+  
+  define main = 
+    "Hello, world"

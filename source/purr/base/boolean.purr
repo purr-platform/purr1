@@ -1,0 +1,51 @@
+language purr.core.kernel
+
+#: Boolean values
+module purr.base.boolean
+  provides { Boolean, _ === _, _ =/= _, not _, _ and _, _ or _ }
+  foreign "../primitives.js" as prim
+
+  define Boolean = prim.Bool.Boolean
+
+
+  #: True if two booleans are equal
+  define (a is Boolean) === (b is Boolean) =
+    prim.Bool.eq(a, b)
+  where
+    assert true === true;
+    assert false === false
+  
+
+  #: True if two booleans are not equal
+  define (a is Boolean) =/= (b is Boolean) =
+    prim.Bool.neq(a, b)
+  where
+    assert false =/= true
+
+
+  #: Boolean conjunction
+  define (a is Boolean) and (b is Boolean) =
+    prim.Bool.and(a, b)
+  where
+    assert (true and true) === true;
+    assert (false and true) === false;
+    assert (true and false) === false;
+    assert (false and false) === false
+
+
+  #: Boolean disjunction
+  define (a is Boolean) or (b is Boolean) =
+    prim.Bool.or(a, b)
+  where
+    assert (true or true) === true;
+    assert (true or false) === true;
+    assert (false or true) === true;
+    assert (false or false) === false
+
+
+  #: Boolean negation
+  define not (a is Boolean) =
+    prim.Bool.not(a)
+  where
+    assert not true === false;
+    assert not false === true
