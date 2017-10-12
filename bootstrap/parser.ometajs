@@ -60,7 +60,7 @@ ometa PurrParser {
   fieldListR = Param:a (ws ',' ws Param)*:as -> [a].concat(as),
 
   // ----
-  Module = kw('module') ws QualId:i ws kw('where') (ws Declaration)*:ds -> ['mod', i, ds],
+  Module = kw('module') ws QualId:i (ws Declaration)*:ds -> ['mod', i, ds],
 
 
   // ---- Declarations
@@ -220,7 +220,7 @@ ometa PurrParser {
 
 
   Privileged = ws PrivModule:m ws eof -> m,
-  PrivModule = kw('module') ws QualId:i ws kw('where') (ws PrivDeclaration)*:ds -> ['mod', i, ds],
+  PrivModule = kw('module') ws QualId:i (ws PrivDeclaration)*:ds -> ['mod', i, ds],
   PrivDeclaration = Declaration | FFI,
   FFI = kw('foreign') ws Text:p ws kw('as') ws Id:a -> ['ffi', p, a]
 }
