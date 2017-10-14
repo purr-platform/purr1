@@ -1,0 +1,86 @@
+language purr.core.kernel
+
+module purr.text
+  provides { _ === _, _ =/= _, _ + _, _ includes: _ }
+  foreign "../primitives.js" as prim
+
+  define Text = prim.Text.Text
+
+  #TODO: this is a tough one. How do we define equivalence of texts?
+  # Swift compares the canonical representation. We could do that as well
+  # here (and I think it's at least better than what JS does by default)
+  # but idk. Also affects methods like includes, split, etc. 
+  # Gotta think more about this.
+  % documentation: "True if two texts contain the same characters."
+  define (a is Text) === (b is Text) =
+    prim.Text.eq(a, b)
+  where
+    assert "a" === "a";
+    assert "HeLLo" === "HeLLo";
+    assert "á" === "á"
+
+  % documentation: "True if two texts do not contain the same characters."
+  define (a is Text) =/= (b is Text) =
+    prim.Text.neq(a, b)
+  where
+    assert "a" =/= "b";
+    assert "é" =/= "é" # normalized x unicode combinator
+  
+
+  % documentation: "Concatenates two texts"
+  define (a is Text) + (b is Text) =
+    prim.Text.concat(a, b)
+  where
+    assert "a" + "b" === "ab";
+    assert "hello" + " " + "world" === "hello world"
+
+  
+  % documentation: "True if a text includes another"
+  define (text is Text) includes: (subtext is Text) =
+    prim.Text.includes(text, subtext)
+  where
+    assert "hello" includes: "h";
+    assert "hello" includes: "o";
+    assert "hello" includes: "ell"
+
+  
+  % documeentation: "True if a text starts with another"
+  define (text is Text) starts_with: (subtext is Text) =
+    prim.Text.starts_with(text, subtext)
+  where
+    assert "hello" starts_with: "hel"
+  
+
+  % documentation: "True if a text ends with another"
+  define (text is Text) ends_with: (subtext is Text) =
+    prim.Text.ends_with(text, subtext)
+  where
+    assert "hello" ends_with: "lo"
+
+  
+  % documentation: "Removes whitespace from both sides of the text"
+  define (text is Text) trim =
+    prim.Text.trim(text)
+  where
+    assert " \thello" trim === "hello";
+    assert "hello\r\n" trim === "hello";
+    assert " \fhello\n" trim === "hello";
+    assert " h e l " trim === "h e l"
+
+
+  % documentation: "Removes whitespace from the beginning of the text"
+  define (text is Text) trim_left =
+    prim.Text.trim_left(text)
+  where
+    assert " hello" trim_left === "hello";
+    assert "hello " trim_left === "hello ";
+    assert " h e l " trim_left === "h e l "
+
+
+  % documentation: "Removes whitespace from the end of the text"
+  define (text is Text) trim_right =
+    prim.Text.trim_right(text)
+  where
+    assert " hello" trim_right === " hello";
+    assert "hello " trim_right === "hello";
+    assert " h e l " trim_right === " h e l"

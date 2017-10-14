@@ -61,11 +61,39 @@ module.exports = function($platform) {
     sub: (a, b) => a.subtract(b)
   };
   //endregion
+
+  //region Text
+  const Text = {
+    $project: (k) => get('Text', Text, k),
+    Text: {
+      $project: (k) => get('Text', Text.Text, k),
+      hasInstance: (x) => typeof x === 'string',
+      type: {
+        hasInstance: (x) => x === Text.Text
+      }
+    },
+
+    eq: (a, b) => a === b,
+    neq: (a, b) => a !== b,
+    concat: (a, b) => a + b,
+    includes: (a, b) => a.includes(b),
+    starts_with: (a, b) => a.startsWith(b),
+    ends_with: (a, b) => a.endsWith(b),
+    trim: (a) => a.trim(),
+    trim_left: (a) => a.trimLeft(),
+    trim_right: (a) => a.trimRight(),
+    upcase: (a) => a.toUpperCase(),
+    downcase: (a) => a.toLowerCase(),
+    split: (a, s) => a.split(s),
+    split_limit: (a, s, l) => a.split(s, l)
+  }
+  //endregion
   
   const prim = {
     $project: (k) => get('<Purr Primitives>', prim, k),
     Bool,
     Int,
+    Text,
 
     
     display: (x) => console.log($rt.show(x)),
