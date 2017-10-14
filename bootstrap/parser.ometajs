@@ -128,8 +128,8 @@ ometa PurrParser {
   Record = kw('record') ws Id:a ws fieldList:fs -> ['record', a, fs],
   
   Union = kw('union') ws Id:a (ws unionCase)+:cs -> ['union', a, cs],
-  unionCase = kw('case') ws Id:a ws fieldList:fs -> ['case', a, fs]
-            | kw('case') ws Id:a ws '{' ws '}'   -> ['case', a, []],
+  unionCase = '|' ws Id:a ws fieldList:fs -> ['case', a, fs]
+            | '|' ws Id:a ws '{' ws '}'   -> ['case', a, []],
 
   Import = kw('uses') ws QualId:i ws symbolList:as -> ['use', i, as],
   symbolList = '{' ws binding:a (ws ',' ws binding)*:as ws '}' -> [a].concat(as),

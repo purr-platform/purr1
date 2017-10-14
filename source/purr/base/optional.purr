@@ -11,8 +11,8 @@ module purr.base.optional
   }
 
   union Optional
-    case Nothing {}
-    case Some { value }
+    | Nothing {}
+    | Some { value }
 
   #: Constructs an Optional with no value.
   define (_ is Optional.type) nothing = Optional.Nothing {}
