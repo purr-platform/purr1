@@ -71,6 +71,10 @@
       "match": "#.+"
     },
     {
+      "name": "comment.annotation",
+      "match": "%"
+    },
+    {
       "name": "keyword.operator.purr",
       "match": "(?<![a-zA-Z0-9_])(===|=/=|>|>=|<|<=|\\+|-|\\*|/|@|\\|>|not|and|or|\\$)(?!a-zA-Z0-9_)"
     }

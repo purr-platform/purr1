@@ -226,3 +226,8 @@ function Check(d, e) {
   return `$rt.$check($self, ${d}, () => { ${e} })`;
 }
 exports.Check = Check;
+
+
+function Annotate([id, xs], d) {
+  return `$rt.$annotate($self, ${d}, ${_(id)}, () => [${xs.join(', ')}])`;
+}

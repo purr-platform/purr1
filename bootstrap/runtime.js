@@ -735,6 +735,14 @@ At ${scope.getModule().id}, line ${line}, column ${column}`);
     return decl;
   }
 
+  function $annotate(scope, decl, id, args) {
+    const ann = decl.$annotations || new Map();
+    const xs = ann.get(id) || [];
+    ann.set(id, [...xs, args]);
+    decl.$annotations = ann;
+    return decl;
+  }
+
 
   return {
     $module,

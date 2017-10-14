@@ -11,6 +11,8 @@ ometa PurrCompiler {
   compile_meth_param = [id:i [#any]] -> [i, null]
                      | [id:i compile:e] -> [i, e],
 
+  compile_ann = [#annc :id [compile*:xs]] -> [id, xs],
+
   compile =
     [#mod [qualid:id] [compile*:decl]]                        -> g.Module(id, decl)
   | [#record [#id :id] :fields]                               -> g.Record(id, fields)
@@ -22,6 +24,7 @@ ometa PurrCompiler {
   | [#method [:sig [compile_meth_param*:args]] compile:expr]  -> g.Method(sig, args, expr)
   | [#ffi compile:p id:i]                                     -> g.FFI(p, i)
   | [#check compile:d compile:e]                              -> g.Check(d, e)
+  | [#ann compile_ann:a compile:d]                            -> g.Annotate(a, d)
 
   // --- Values
   | [#bool :v]                              -> g.Bool(v)
