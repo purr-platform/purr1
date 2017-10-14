@@ -774,6 +774,7 @@ At ${scope.getModule().id}, line ${line}, column ${column}`);
     $pattern,
     $assert,
     $check,
+    $annotate,
 
     show, eq, isInt, isObject,
     BigInteger,

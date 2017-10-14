@@ -112,11 +112,11 @@ ometa PurrParser {
 
 
   // ---- Declarations
-  Declaration = Decorable:a ws kw('where') ws Expr:b -> ['check', a, b]
-              | Annotation
+  Declaration = Annotation
               | AnyDecl,
 
-  Annotation = '%' ws Annotation_Call:a ws Annotation:b -> ['ann', a, b]
+  Annotation = '%' ws Annotation_Call:a ws Annotation:b  -> ['ann', a, b]
+             | Decorable:a ws kw('where') ws Expr:b      -> ['check', a, b]
              | Decorable,
 
   Annotation_Call = (ws kwApp)+:as -> ['annc', sigKw(as), sigArg(as)]

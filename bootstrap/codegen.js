@@ -231,3 +231,4 @@ exports.Check = Check;
 function Annotate([id, xs], d) {
   return `$rt.$annotate($self, ${d}, ${_(id)}, () => [${xs.join(', ')}])`;
 }
+exports.Annotate = Annotate;
