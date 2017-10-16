@@ -131,7 +131,8 @@ ometa PurrParser {
   unionCase = '|' ws Id:a ws fieldList:fs -> ['case', a, fs]
             | '|' ws Id:a ws '{' ws '}'   -> ['case', a, []],
 
-  Import = kw('uses') ws QualId:i ws symbolList:as -> ['use', i, as],
+  Import = kw('uses') ws QualId:i ws symbolList:as (ws ImportGoal)? -> ['use', i, as],
+  ImportGoal = kw('for') ws Id,
   symbolList = '{' ws binding:a (ws ',' ws binding)*:as ws '}' -> [a].concat(as),
   exportList = '{' ws selector:a (ws ',' ws selector)*:as ws '}' -> [a].concat(as),
 
