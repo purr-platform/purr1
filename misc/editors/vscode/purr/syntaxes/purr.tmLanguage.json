@@ -4,7 +4,7 @@
   "patterns": [
     {
       "name": "keyword.control.purr",
-      "match": "(?<![a-zA-Z0-9_\\.\\^])(module|record|union|case|uses|provides|do|let|in|if|then|else|match|define|as|is|foreign|where|assert|for)(?![a-zA-Z0-9_])"
+      "match": "(?<![a-zA-Z0-9_\\.\\^])(not|and|or|module|record|union|case|uses|provides|do|let|in|if|then|else|match|define|as|is|foreign|where|assert|for)(?![a-zA-Z0-9_])"
     },
     {
       "name": "constant.language.purr",
@@ -76,7 +76,7 @@
     },
     {
       "name": "keyword.operator.purr",
-      "match": "(?<![a-zA-Z0-9_])(==>|->|<-|>>|<<|===|=/=|>|>=|<|<=|\\+|-|\\*|/|@|\\|>|not|and|or|\\$)(?!a-zA-Z0-9_)"
+      "match": "(?<![a-zA-Z0-9_])(==>|->|<-|>>|<<|===|=/=|>=|<=|>|<|\\+|-|\\*|/|@|\\|>|\\$)(?!a-zA-Z0-9_)"
     }
   ],
   "scopeName": "source.purr"

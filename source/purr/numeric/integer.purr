@@ -3,12 +3,12 @@ language purr.core.kernel
 module purr.numeric.integer
   provides { 
     Integer,
-    _ === _, _ =/= _,
+    _ === _, _ =/= _, _ < _, _ <= _, _ > _, _ >= _,
     _ + _, _ - _, _ * _, _ / _,
     negate
   }
   uses purr.intrinsics.types { Integer }
-  uses purr.intrinsics.primitives { int_eq, int_neq, int_add, int_div, int_mul, int_not, int_sub, int_not }
+  uses purr.intrinsics.primitives { int_eq, int_neq, int_lt, int_gt, int_gte, int_lte, int_add, int_div, int_mul, int_not, int_sub, int_not }
   uses purr.base.optional { Optional, _ nothing, _ some: _ }
   uses purr.testing { _ ==> _ } for testing
 
@@ -28,6 +28,33 @@ module purr.numeric.integer
     assert 1 =/= 0;
     assert 1000 =/= 1;
     assert 2 =/= 20
+
+  define (a is Integer) > (b is Integer) =
+    int_gt(a, b)
+  where
+    assert 1 > 0;
+    assert 0 > -1
+  
+  define (a is Integer) < (b is Integer) =
+    int_lt(a, b)
+  where
+    assert 0 < 1;
+    assert -1 < 0
+  
+  define (a is Integer) >= (b is Integer) =
+    int_gte(a, b)
+  where
+    assert 1 >= 0;
+    assert 0 >= 0;
+    assert 0 >= -1
+
+  define (a is Integer) <= (b is Integer) =
+    int_lte(a, b)
+  where
+    assert 0 <= 1;
+    assert 0 <= 0;
+    assert -1 <= 0
+  
 
   #: Arithmetic addition
   define (a is Integer) + (b is Integer) =

@@ -2,6 +2,18 @@ const util = require('util');
 const { BigInteger } = require('bigdecimal');
 const im = require('immutable');
 
+
+class Integer {
+  constructor(value) {
+    this.value = value;
+  }
+
+  equals(that) {
+    return that instanceof Integer
+    &&     that.value.compareTo(this.value) === 0;
+  }
+}
+
 const log = (x, ...ys) => {
   if (process.env.DEBUG_PURR) {
     console.log(`(PURR)`, x, ...ys.map(y => util.inspect(y, false, 3, false)));
@@ -25,12 +37,11 @@ function eqVector(a, b) {
 }
 
 function isInt(a) {
-  return a instanceof BigInteger;
+  return a instanceof Integer;
 }
 
 function eq(a, b) {
   return a == null || b == null               ?   (() => { throw new Error(`Unexpected null/undefined`)})
-  :      isInt(a) && isInt(b)                 ?   a.compareTo(b) === 0
   :      a.equals && b.equals                 ?   a.equals(b)
   :      Array.isArray(a) && Array.isArray(b) ?   eqVector(a, b)
   :      /* else */                               a === b
@@ -41,8 +52,9 @@ function show(v) {
   :      typeof v === 'number'   ?     Math.floor(v) === v ? v.toFixed(1) : v
   :      !isObject(v)            ?     JSON.stringify(v)
   :      Array.isArray(v)        ?     `[${v.map(show).join(', ')}]`
-  :      isInt(v)                ?     `${v}`
+  :      isInt(v)                ?     `${v.value}`
   :      typeof v === 'function' ?     `<Closure with arity ${v.length}>`
+  :      im.List.isList(v)       ?     `[${v.toArray().map(show).join(', ')}]`
   :      v.$show                 ?     v.$show()
   :      /* else */                    `<Unknown value>`;
 }
@@ -540,9 +552,9 @@ exports.runtime = function(world) {
   }
 
   function $int(sign, value) {
-    const x = new BigInteger(`${value}`);
+    const x = new Integer(new BigInteger(`${value}`));
     if (sign === '-') {
-      return x.negate();
+      return new Integer(x.value.negate());
     } else {
       return x;
     }
@@ -778,7 +790,7 @@ At ${scope.getModule().id}, line ${line}, column ${column}`);
     $makevar,
 
     show, eq, isInt, isObject,
-    BigInteger,
+    Integer,
     World, Module, Scope, Thunk, Record, Variant, Union, Type, Multimethod, MultimethodBranch, MultimethodImport
   };
 };

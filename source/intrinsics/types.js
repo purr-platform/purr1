@@ -8,7 +8,7 @@ module.exports = ($platform) => {
     });
 
     $self.put('Integer', {
-      hasInstance: (x) => x instanceof $rt.BigInteger
+      hasInstance: (x) => $rt.isInt(x)
     });
 
     $self.put('Decimal', {
