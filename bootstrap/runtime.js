@@ -1,5 +1,6 @@
 const util = require('util');
 const { BigInteger } = require('bigdecimal');
+const im = require('immutable');
 
 const log = (x, ...ys) => {
   if (process.env.DEBUG_PURR) {
@@ -579,10 +580,11 @@ exports.runtime = function(world) {
   }
 
   function $vector(values) {
-    return values;
+    return im.List(values);
   }
 
   function $closure(args, closure) {
+    closure.arity = args.length;
     return closure;
   }
 
@@ -607,6 +609,10 @@ exports.runtime = function(world) {
   }
 
   function $call(scope, expr, args) {
+    const arity = expr.length || expr.arity;
+    if (arity !== args.length) {
+      throw new Error(`Expected ${arity} argumeents, but got ${args.length}`);
+    }
     logp(`Calling closure with`, show(args));
     const result = expr(...args);
     logp(`>>> `, show(result));
@@ -686,13 +692,16 @@ exports.runtime = function(world) {
 
     $vector(patterns, spread) {
       return (value) => {
-        if (spread == null && value.length !== patterns.length) {
+        if (!im.List.isList(value)) {
+          return null;
+        }
+        if (spread == null && value.size !== patterns.length) {
           return null;
         }
         const bindings = {};
         let index = 0;
         for (const patt of patterns) {
-          const maybeBindings = patt(value[index]);
+          const maybeBindings = patt(value.get(index));
           if (maybeBindings == null) {
             return null;
           } else {

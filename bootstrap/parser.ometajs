@@ -1,6 +1,6 @@
 var reserved = [
   'module', 'where', 'record', 'union', 'case', 'do', 'in', 'if', 'then', 'else', 'match',
-  'and', 'or', 'not', 'define', 'true', 'false', 'is', 'foreign', 'let', 'type', 'provides', 'uses', 'assert'
+  'and', 'or', 'not', 'define', 'true', 'false', 'is', 'foreign', 'let', 'provides', 'uses', 'assert'
 ];
 
 function isValid(x) {
@@ -279,7 +279,7 @@ ometa PurrParser {
           | Primary,
 
   Primary = Values
-          | Id:a ~':' -> ['deref', a]
+          | Id:a ~':'            -> ['deref', a]
           | '(' ws Expr:e ws ')' -> e,
 
   Program = ws Module:m ws eof -> m,

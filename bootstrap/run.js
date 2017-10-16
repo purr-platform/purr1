@@ -44,6 +44,7 @@ function indent(s) {
 }
 
 loadDir(path.join(__dirname, '../source/purr'), '**/*.purr');
+loadDir(path.join(__dirname, '../source/intrinsics'), '**/*.js');
 loadDir(root, '**/*.purr');
 world.start();
 

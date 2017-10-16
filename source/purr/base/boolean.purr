@@ -2,15 +2,14 @@ language purr.core.kernel
 
 #: Boolean values
 module purr.base.boolean
+  uses purr.intrinsics.types { Boolean }
+  uses purr.intrinsics.primitives { bool_eq, bool_neq, bool_and, bool_or, bool_not }
   provides { Boolean, _ === _, _ =/= _, not _, _ and _, _ or _ }
-  foreign "../primitives.js" as prim
-
-  define Boolean = prim.Bool.Boolean
 
 
   #: True if two booleans are equal
   define (a is Boolean) === (b is Boolean) =
-    prim.Bool.eq(a, b)
+    bool_eq(a, b)
   where
     assert true === true;
     assert false === false
@@ -18,14 +17,14 @@ module purr.base.boolean
 
   #: True if two booleans are not equal
   define (a is Boolean) =/= (b is Boolean) =
-    prim.Bool.neq(a, b)
+    bool_neq(a, b)
   where
     assert false =/= true
 
 
   #: Boolean conjunction
   define (a is Boolean) and (b is Boolean) =
-    prim.Bool.and(a, b)
+    bool_and(a, b)
   where
     assert (true and true) === true;
     assert (false and true) === false;
@@ -35,7 +34,7 @@ module purr.base.boolean
 
   #: Boolean disjunction
   define (a is Boolean) or (b is Boolean) =
-    prim.Bool.or(a, b)
+    bool_or(a, b)
   where
     assert (true or true) === true;
     assert (true or false) === true;
@@ -45,7 +44,7 @@ module purr.base.boolean
 
   #: Boolean negation
   define not (a is Boolean) =
-    prim.Bool.not(a)
+    bool_not(a)
   where
     assert not true === false;
     assert not false === true
