@@ -29,8 +29,8 @@ exports.Record = Record;
 
 
 function Union(id, cases) {
-  const makeCase = ([tag, fields]) =>
-    `$rt.$case(${_(tag)}, ${_(fields.map(x => x[1]))})`;
+  const makeCase = ([tag, args]) =>
+    `$rt.$case(${_(tag)}, ${args.length})`;
   
   return `$rt.$union($self, ${_(id)}, [
       ${cases.map(makeCase).join(',\n      ')}
@@ -148,6 +148,12 @@ function New(expr, args) {
 exports.New = New;
 
 
+function MakeVariant(struct, tag, args) {
+  return `$rt.$makevar($self, ${struct}, ${_(tag)}, [${args.join(', ')}])`;
+}
+exports.MakeVariant = MakeVariant;
+
+
 function Call(callee, args) {
   return `$rt.$call($self, ${callee}, [${args.join(', ')}])`;
 }
@@ -190,6 +196,13 @@ function PatternUnapply(expr, fields) {
   return `$rt.$pattern.$unapply(${expr}, [${pairs.join(', ')}])`;
 }
 exports.PatternUnapply = PatternUnapply;
+
+
+function PatternUnvar(expr, tag, params) {
+  const pairs = params.map((x, i) => `[${_(i)}, ${x}]`);
+  return `$rt.$pattern.$unapply($rt.$variant_get(${expr}, ${_(tag)}), [${pairs.join(', ')}])`;
+}
+exports.PatternUnvar = PatternUnvar;
 
 
 function PatternVector(patterns, spread) {

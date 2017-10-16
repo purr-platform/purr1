@@ -57,14 +57,14 @@ module purr.numeric.integer
   #: Arithmetic division
   define (a is Integer) / (b is Integer) =
     if b === 0 then
-      Optional nothing
+      Optional.nothing
     else
-      Optional some: int_div(a, b)
+      Optional.some: int_div(a, b)
   where
-    assert 2 / 0 ==> Optional.Nothing {};
-    assert 0 / 2 ==> Optional.Some { value = 0 };
-    assert 4 / 2 ==> Optional.Some { value = 2 };
-    assert 4 / 3 ==> Optional.Some { value = 1 }
+    assert 2 / 0 ==> Optional.nothing;
+    assert 0 / 2 ==> Optional.some: 0;
+    assert 4 / 2 ==> Optional.some: 2;
+    assert 4 / 3 ==> Optional.some: 1
 
 
   define (a is Integer) negate =

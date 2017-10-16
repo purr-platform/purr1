@@ -4,30 +4,23 @@ language purr.core.kernel
 module purr.base.optional
   provides {
     Optional,
-    _ nothing,
-    _ some: _,
     _ map: _,
     _ value_or_default: _
   }
 
   union Optional
-    | Nothing {}
-    | Some { value }
-
-  #: Constructs an Optional with no value.
-  define (_ is Optional.type) nothing = Optional.Nothing {}
-
-  #: COnstructs an Optional holding some value.
-  define (_ is Optional.type) some: value = Optional.Some { value = value }
+    | nothing
+    | some: _
 
   #: Transforms the value inside an Optional.
   define (x is Optional) map: transformation =
     match x
-      case Optional.Nothing {}      do Optional nothing
-      case Optional.Some { value }  do Optional some: transformation(value)
+      case 1 do 1
+      case Optional.nothing      do Optional.nothing
+      case Optional.some: value  do Optional.some: transformation(value)
 
   #: Retrieves the value of an Optional, or a default one.
   define (x is Optional) value_or_default: default_value =
     match x
-      case Optional.Nothing {}      do default_value
-      case Optional.Some { value }  do value
+      case Optional.nothing     do default_value
+      case Optional.some: value do value

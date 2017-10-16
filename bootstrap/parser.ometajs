@@ -128,8 +128,11 @@ ometa PurrParser {
   Record = kw('record') ws Id:a ws fieldList:fs -> ['record', a, fs],
   
   Union = kw('union') ws Id:a (ws unionCase)+:cs -> ['union', a, cs],
-  unionCase = '|' ws Id:a ws fieldList:fs -> ['case', a, fs]
-            | '|' ws Id:a ws '{' ws '}'   -> ['case', a, []],
+  unionCase = '|' (ws kwVariant)+:as   -> ['variant', sigKw(as), sigArg(as)]
+            | '|' ws name:a            -> ['variant', a, []],
+
+  kwVariant = Keyword:k ws '_' -> [k, '_'],
+
 
   Import = kw('uses') ws QualId:i ws symbolList:as (ws ImportGoal)? -> ['use', i, as],
   ImportGoal = kw('for') ws Id,
@@ -199,14 +202,18 @@ ometa PurrParser {
 
   matchCase = kw('case') ws Pattern:p ws kw('do') ws Expr:e -> ['case', p, e],
 
-  Pattern = kw('any') -> ['patt_any']
-          | (Bool | Int32 | Dec64 | Text):v -> ['patt_eq', v]
-          | Postfix:a ws '{' ws fieldPattern:fs ws '}' -> ['patt_unapply', a, fs]
-          | Postfix:a ws '{' ws '}' -> ['patt_unapply', a, []]
-          | PatternVector:v -> ['patt_vec', v]
-          | Id:i -> ['patt_bind', i]
-          | '_' -> ['patt_any']
-          | '(' ws Pattern:a ws ')' -> a,
+  Pattern = Primary:a ws '.' (ws kwPattern)+:ns  -> ['patt_unvar', a, sigKw(ns), sigArg(ns)]
+          | SimplePattern,
+
+  SimplePattern = kw('any')                                     -> ['patt_any']
+                | (Bool | Int32 | Dec64 | Text):v               -> ['patt_eq', v]
+                | Primary:a ws '{' ws fieldPattern:fs ws '}'    -> ['patt_unapply', a, fs]
+                | Primary:a ws '{' ws '}'                       -> ['patt_unapply', a, []]
+                | Primary:a ws '.' ws name:n ~':'               -> ['patt_unvar', a, n, []]
+                | PatternVector:v                               -> ['patt_vec', v]
+                | Id:i                                          -> ['patt_bind', i]
+                | '_'                                           -> ['patt_any']
+                | '(' ws Pattern:a ws ')'                       -> a,
 
   PatternVector = '[' ws ']' -> [[], ['none']]
                 | '[' ws Pattern:p (ws ',' ws Pattern)*:ps (ws ',' ws PatternVectorLast)?:le ws ']'
@@ -221,6 +228,8 @@ ometa PurrParser {
                  | Id:a ws kw('as') ws Id:b -> [a, ['patt_bind', b]]
                  | Id:a -> [a, ['patt_bind', a]],
   fieldPattern = fieldPatternKV:x (ws ',' ws fieldPatternKV)*:xs -> [x].concat(xs),
+
+  kwPattern = Keyword:k ws SimplePattern:v -> [k, v],
 
 
   Sequence = Sequence:a ws ';' ws Pipe:b -> ['seq', a, b]
@@ -276,7 +285,8 @@ ometa PurrParser {
   exprList = '(' ws ')' -> []
            | '(' Expr:e (ws ',' ws Expr)*:es ws ')' -> [e].concat(es),
 
-  Postfix = Postfix:r ws '.' ws name:a -> ['proj', r, a]
+  Postfix = Id:r ws '.' (ws kwApp)+:as -> ['makevar', ['deref', r], sigKw(as), sigArg(as)]
+          | Id:r ws '.' ws name:a      -> ['makevar', ['deref', r], a, []]
           | Primary,
 
   Primary = Values

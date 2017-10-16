@@ -17,7 +17,7 @@ ometa PurrCompiler {
     [#mod [qualid:id] [compile*:decl]]                        -> g.Module(id, decl)
   | [#record [#id :id] :fields]                               -> g.Record(id, fields)
   | [#union [#id :id] [compile*:cases]]                       -> g.Union(id, cases)
-  | [#case [#id :id] :fields]                                 -> [id, fields]
+  | [#variant :id :fields]                                    -> [id, fields]
   | [#public :symbols]                                        -> g.Public(symbols)
   | [#use [qualid:id] :symbols]                               -> g.Use(id, symbols)
   | [#method [:sig []] compile:expr]                          -> g.Thunk(sig, expr)
@@ -42,6 +42,7 @@ ometa PurrCompiler {
   | [#seq compile:a compile:b]             -> g.Seq(a, b)
   | [#mcall :sig [compile*:args]]          -> g.MCall(sig, args)
   | [#new compile:a [fmap*:fs]]            -> g.New(a, fs)
+  | [#makevar compile:s :t [compile*:xs]]  -> g.MakeVariant(s, t, xs)
   | [#call compile:a [compile*:args]]      -> g.Call(a, args)
   | [#proj compile:r :a]                   -> g.Proj(r, a)
   | [#deref id:a]                          -> g.Deref(a)
@@ -55,6 +56,7 @@ ometa PurrCompiler {
   | [#patt_eq compile:v]                                     -> g.PatternEqual(v)
   | [#patt_bind id:i]                                        -> g.PatternBind(i)
   | [#patt_unapply compile:e [compile_field_pattern*:ps]]    -> g.PatternUnapply(e, ps)
+  | [#patt_unvar compile:e :t [compile_pattern*:ps]]         -> g.PatternUnvar(e, t, ps)
   | [#patt_vec [[compile_pattern*:ps] compile_pattern:p]]    -> g.PatternVector(ps, p)
   | [#none]                                                  -> null,
 

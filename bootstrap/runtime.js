@@ -267,24 +267,15 @@ class Record {
 }
 
 class Variant {
-  constructor(tag, fields) {
+  constructor(tag, arity) {
     this.tag = tag;
-    this.fields = fields;
+    this.arity = arity;
   }
 
-  make(pairs) {
-    const map = pairsToObject(pairs);
-    Object.keys(map).forEach(k => {
-      if (!this.fields.includes(k)) {
-        throw new Error(`Extraneous field ${k} in ${this.tag}`);
-      }
-    });
-    const values = this.fields.map(k => {
-      if (!(k in map)) {
-        throw new Error(`Missing field ${k} in ${this.tag}`);
-      }
-      return map[k];
-    });
+  make(values) {
+    if (values.length !== this.arity) {
+      throw new Error(`${this.tag} requires ${this.arity} arguments, got ${values.length}`);
+    }
 
     return {
       $variant: this,
@@ -293,16 +284,6 @@ class Variant {
       equals(that) {
         return this.$variant.hasInstance(that)
         &&     this.$values.every((x, i) => eq(x, that.$values[i]));
-      },
-      $project: (field) => {
-        if (field === 'type') {
-          return new Type(this);
-        }
-        const x = map[field];
-        if (x == null) {
-          throw new Error(`Invalid field ${field} for variant ${this.tag}`);
-        }
-        return x;
       },
       $show() {
         const pairs = [...Object.entries(this.$values)].map(([k, v]) => {
@@ -317,24 +298,12 @@ class Variant {
     return value === Object(value) && value.$variant === this;
   }
 
-  unapply(value, keys) {
+  unapply(value) {
     if (!this.hasInstance(value)) {
       return null;
+    } else {
+      return value.$values;
     }
-
-    const keySet = new Set(keys);
-    const fieldSet = new Set(this.fields);
-    for (const k of keys) {
-      if (!fieldSet.has(k))  return null;
-    }
-    const values = [];
-    this.fields.forEach((f, i) => {
-      if (keySet.has(f)) {
-        values.push(value.$values[i]);
-      }
-    });
-
-    return values;
   }
 }
 
@@ -356,6 +325,14 @@ class Union {
     &&     value.$variant
     &&     value.$variant instanceof Variant
     &&     value.$variant === this.$variants[value.$variant.tag];
+  }
+
+  getVariant(tag) {
+    const x = this.$variants[tag];
+    if (x == null) {
+      throw new Error(`No variant ${tag} in union ${this.$id}`);
+    }
+    return x;
   }
 
   $project(field) {
@@ -552,8 +529,8 @@ exports.runtime = function(world) {
     return union;
   }
 
-  function $case(tag, fields) {
-    return new Variant(tag, fields);
+  function $case(tag, args) {
+    return new Variant(tag, args);
   }
 
   function $bool(v) {
@@ -623,12 +600,24 @@ exports.runtime = function(world) {
     return expr.make(pairs);
   }
 
+  function $makevar(scope, struct, tag, args) {
+    return struct.getVariant(tag).make(args);
+  }
+
   function $project(scope, record, field) {
     if (!record || !record.$project) {
       throw new Error(`Not projectable ${record}`);
     }
 
     return record.$project(field);
+  }
+
+  function $variant_get(struct, tag) {
+    if (!(struct instanceof Union)) {
+      log('Not an union: ', show(struct));
+      throw new Error(`Expected Union`);
+    }
+    return struct.getVariant(tag);
   }
 
   function $match(baseScope, value, cases) {
@@ -785,6 +774,8 @@ At ${scope.getModule().id}, line ${line}, column ${column}`);
     $assert,
     $check,
     $annotate,
+    $variant_get,
+    $makevar,
 
     show, eq, isInt, isObject,
     BigInteger,
