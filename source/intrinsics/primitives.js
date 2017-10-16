@@ -27,6 +27,10 @@ module.exports = ($platform) => {
     $self.put('text_trim_left', (a) => a.trimLeft());
     $self.put('text_trim_right', (a) => a.trimRight());
 
+    $self.put('eq', (a, b) => $rt.eq(a, b));
+    $self.put('show', (a) => $rt.show(a));
+    $self.put('indent', (n, a) => a.split(/\r\n|\r|\n/).map(x => `${" ".repeat(n)}${x}`).join('\n'));
+
     $rt.$public($self, Object.keys($self.getScope().bindings));
   });
 };

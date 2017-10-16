@@ -4,6 +4,7 @@ language purr.core.kernel
 module purr.base.boolean
   uses purr.intrinsics.types { Boolean }
   uses purr.intrinsics.primitives { bool_eq, bool_neq, bool_and, bool_or, bool_not }
+  uses purr.testing { _ ==> _ } for testing
   provides { Boolean, _ === _, _ =/= _, not _, _ and _, _ or _ }
 
 
@@ -26,25 +27,25 @@ module purr.base.boolean
   define (a is Boolean) and (b is Boolean) =
     bool_and(a, b)
   where
-    assert (true and true) === true;
-    assert (false and true) === false;
-    assert (true and false) === false;
-    assert (false and false) === false
+    assert true and true   ==> true;
+    assert false and true  ==> false;
+    assert true and false  ==> false;
+    assert false and false ==> false
 
 
   #: Boolean disjunction
   define (a is Boolean) or (b is Boolean) =
     bool_or(a, b)
   where
-    assert (true or true) === true;
-    assert (true or false) === true;
-    assert (false or true) === true;
-    assert (false or false) === false
+    assert true or true   ==> true;
+    assert true or false  ==> true;
+    assert false or true  ==> true;
+    assert false or false ==> false
 
 
   #: Boolean negation
   define not (a is Boolean) =
     bool_not(a)
   where
-    assert not true === false;
-    assert not false === true
+    assert not true  ==> false;
+    assert not false ==> true

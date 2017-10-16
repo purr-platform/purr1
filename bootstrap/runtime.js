@@ -290,7 +290,7 @@ class Variant {
       $variant: this,
       $values: values,
       hashCode: () => 0,
-      equals: (that) => {
+      equals(that) {
         return this.$variant.hasInstance(that)
         &&     this.$values.every((x, i) => eq(x, that.$values[i]));
       },
@@ -724,9 +724,10 @@ exports.runtime = function(world) {
 
   let inCheck = false;
   function $assert(scope, test, { line, column, source }) {
-    if (!test) {
+    if (test !== true) {
+      const additional = typeof test === 'string' ? `\n${test}\n` : '';
       throw new Error(`Assertion failed: ${source}
-
+${additional}
 At ${scope.getModule().id}, line ${line}, column ${column}`);
     } else if (inCheck) {
       console.log(`  ○ ${source}`);

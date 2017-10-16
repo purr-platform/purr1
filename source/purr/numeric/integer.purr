@@ -10,6 +10,7 @@ module purr.numeric.integer
   uses purr.intrinsics.types { Integer }
   uses purr.intrinsics.primitives { int_eq, int_neq, int_add, int_div, int_mul, int_not, int_sub, int_not }
   uses purr.base.optional { Optional, _ nothing, _ some: _ }
+  uses purr.testing { _ ==> _ } for testing
 
 
   #: True if both integers are equal
@@ -32,25 +33,25 @@ module purr.numeric.integer
   define (a is Integer) + (b is Integer) =
     int_add(a, b)
   where
-    assert (1 + 0) === 1;
-    assert (2 + 2) === 4;
-    assert (2 + -1) === 1
+    assert 1 + 0  ==> 1;
+    assert 2 + 2  ==> 4;
+    assert 2 + -1 ==> 1
 
   #: Arithmetic subtraction
   define (a is Integer) - (b is Integer) =
     int_sub(a, b)
   where
-    assert (1 - 0) ===  1;
-    assert (1 - 1) ===  0;
-    assert (1 - 2) === -1
+    assert 1 - 0 ==>  1;
+    assert 1 - 1 ==>  0;
+    assert 1 - 2 ==> -1
 
   #: Arithmetic multiplication
   define (a is Integer) * (b is Integer) =
     int_mul(a, b)
   where
-    assert (2 * 0) === 0;
-    assert (2 * 1) === 2;
-    assert (2 * 2) === 4
+    assert 2 * 0 ==> 0;
+    assert 2 * 1 ==> 2;
+    assert 2 * 2 ==> 4
 
   #FIXME: this should return an arbitrary-precision rational
   #: Arithmetic division
@@ -60,19 +61,15 @@ module purr.numeric.integer
     else
       Optional some: int_div(a, b)
   where
-    let is_nothing = { x in match x
-                              case Optional.Nothing{} do true
-                              case _                  do false }
-    in
-    assert is_nothing(2 / 0);
-    assert (0 / 2).value === 0;
-    assert (4 / 2).value === 2;
-    assert (4 / 3).value === 1
+    assert 2 / 0 ==> Optional.Nothing {};
+    assert 0 / 2 ==> Optional.Some { value = 0 };
+    assert 4 / 2 ==> Optional.Some { value = 2 };
+    assert 4 / 3 ==> Optional.Some { value = 1 }
 
 
   define (a is Integer) negate =
     int_not(a)
   where
-    assert 1 negate === -1;
-    assert -1 negate === 1;
-    assert 0 negate === 0
+    assert 1 negate  ==> -1;
+    assert -1 negate ==>  1;
+    assert 0 negate  ==>  0
