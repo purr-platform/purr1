@@ -70,19 +70,22 @@ module.exports = ($platform) => {
     $self.put('bench_time', (desc, fn, n) => {
       return () => {
         const times = n.value.floatValue();
-        const x = new Array(times);
+        const use = (x) => { try { Math.random(x) } catch(e) { } };
+        let x;
         const timed = () => {
           for (var i = 0; i < times; ++i) {
-            x[i] = fn();
+            x = fn();
           }
         };
 
         performance.mark('warmup start');
         timed();
         performance.mark('warmup end');
+        use(x);
         performance.mark('hot start');
         timed();
         performance.mark('hot end');
+        use(x);
         
         performance.measure('warmup', 'warmup start', 'warmup end');
         performance.measure('hot', 'hot start', 'hot end');
