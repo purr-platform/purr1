@@ -65,7 +65,7 @@ exports.Method = Method;
 
 
 function Thunk(sig, expr) {
-  return `$rt.$thunk($self, ${_(sig)}, function ${m(sig)}() { return ${expr} });`
+  return `$rt.$thunk($self, ${_(sig)}, function ${m(sig)}() { return ${expr} })`
 }
 exports.Thunk = Thunk;
 
