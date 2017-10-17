@@ -53,43 +53,82 @@ module.exports = ($platform) => {
     $self.put('vec_sort', (a, f) => a.sort((a, b) => { return f(a, b).value.floatValue() }));
 
 
+    $self.put('ffi_require', (m, p) => m.meta.require(p));
+    $self.put('ffi_project', (r, f) => {
+      const v = r[f];
+      if (v == null) {
+        throw new Error(`No valid field ${f}`);
+      }
+      return v;
+    });
+
     $self.put('eq', (a, b) => $rt.eq(a, b));
     $self.put('show', (a) => $rt.show(a));
     $self.put('indent', (n, a) => a.split(/\r\n|\r|\n/).map(x => `${" ".repeat(n)}${x}`).join('\n'));
     $self.put('panic', (e) => { throw new Error(e) });
-    $self.put('time', (desc, fn, n) => {
-      const times = n.value.floatValue();
-      const x = new Array(times);
-      const timed = () => {
-        for (var i = 0; i < times; ++i) {
-          x[i] = fn();
-        }
+
+    $self.put('bench_time', (desc, fn, n) => {
+      return () => {
+        const times = n.value.floatValue();
+        const x = new Array(times);
+        const timed = () => {
+          for (var i = 0; i < times; ++i) {
+            x[i] = fn();
+          }
+        };
+
+        performance.mark('warmup start');
+        timed();
+        performance.mark('warmup end');
+        performance.mark('hot start');
+        timed();
+        performance.mark('hot end');
+        
+        performance.measure('warmup', 'warmup start', 'warmup end');
+        performance.measure('hot', 'hot start', 'hot end');
+        performance.measure('total', 'warmup start', 'hot end');
+        
+        const warmupTime = performance.getEntriesByName('warmup')[0].duration;
+        const hotTime = performance.getEntriesByName('hot')[0].duration;
+        const totalTime = performance.getEntriesByName('total')[0].duration;
+
+        console.log('-', desc);
+        console.log('  | Warmup time:', `${warmupTime}ms`, `(${warmupTime / 100} median)`);
+        console.log('  | Hot time:',    `${hotTime}ms`, `(${hotTime / 100} median)`);
+        console.log('  | Total time:',  `${totalTime}ms`, `(${totalTime / 200} median)`);
+        console.log('');
+        
+        performance.clearMarks();
+        performance.clearMeasures();
+
+        return [desc, [warmupTime, hotTime, totalTime]];
       };
+    });
 
-      performance.mark('warmup start');
-      timed();
-      performance.mark('warmup end');
-      performance.mark('hot start');
-      timed();
-      performance.mark('hot end');
-      
-      performance.measure('warmup', 'warmup start', 'warmup end');
-      performance.measure('hot', 'hot start', 'hot end');
-      performance.measure('total', 'warmup start', 'hot end');
-      
-      const warmupTime = performance.getEntriesByName('warmup')[0];
-      const hotTime = performance.getEntriesByName('hot')[0];
-      const totalTime = performance.getEntriesByName('total')[0];
-
-      console.log('-', desc);
-      console.log('  |');
-      console.log('  | Warmup time:', `${warmupTime.duration}ms`, `(${warmupTime.duration / 100} median)`);
-      console.log('  | Hot time:',    `${hotTime.duration}ms`, `(${hotTime.duration / 100} median)`);
-      console.log('  | Total time:',  `${totalTime.duration}ms`, `(${totalTime.duration / 200} median)`);
+    $self.put('bench_suite', (n, xs) => {
+      console.log(n);
+      console.log('-'.repeat(n.length));
       console.log('');
+
+      const tag = (t) => t < 1   ? `${-t}x faster`
+                      :  t > 1   ? `${t}x slower`
+                      :  /* _ */   `${t}x`;
+
+      const listFast = (xs, n) => {
+        const base = xs[0][1];
+        const ts = xs.map(([d, t]) => `  ${d} (${t}ms / ${tag(t / base)})`);
+        console.log(`${n}:\n${ts.join('\n')}`);
+      }
+
+      const times  = xs.toArray().map(f => f());
+      const warmup = times.map(x => [x[0], x[1][0]]).sort(([_, a], [__, b]) => a - b);
+      const hot    = times.map(x => [x[0], x[1][1]]).sort(([_, a], [__, b]) => a - b);
+      const total  = times.map(x => [x[0], x[1][2]]).sort(([_, a], [__, b]) => a - b);
       
-      performance.clearMarks();
-      performance.clearMeasures();
+      console.log('---');
+      listFast(warmup, 'warmup');
+      listFast(hot, 'hot');
+      listFast(total, 'total');
     });
 
     $rt.$public($self, Object.keys($self.getScope().bindings));

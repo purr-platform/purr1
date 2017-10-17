@@ -602,7 +602,7 @@ exports.runtime = function(world) {
   function $call(scope, expr, args) {
     const arity = expr.length || expr.arity;
     if (arity !== args.length) {
-      throw new Error(`Expected ${arity} argumeents, but got ${args.length}`);
+      throw new Error(`Expected ${arity} arguments, but got ${args.length}`);
     }
     logp(`Calling closure with`, show(args));
     const result = expr(...args);

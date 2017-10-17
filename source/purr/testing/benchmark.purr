@@ -1,7 +1,8 @@
 language purr.core
 
 module purr.testing.benchmark
-  provides { _ time: _ repeat: _ }
-  uses purr.intrinsics.primitives { time }
+  provides { _ time: _ repeat: _, _ suite: _ }
+  uses purr.intrinsics.primitives { bench_time, bench_suite }
 
-  define desc time: fn repeat: n = time(desc, fn, n)
+  define desc time: fn repeat: n = bench_time(desc, fn, n)
+  define desc suite: benchs = bench_suite(desc, benchs)

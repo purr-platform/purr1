@@ -91,9 +91,18 @@ if (argv.run) {
     if (doBench(m)) {
       console.log(`\nRunning benchmarks for ${m.id}`);
       console.log('='.repeat(23 + m.id.length));
+      console.log('');
       for (const [k, v] of Object.entries(m.scope.bindings)) {
         if (v.$annotations && v.$annotations.get('benchmark')) {
-          v.value();
+          try {
+            v.value();
+          } catch (e) {
+            console.log(`Benchmarks for ${k} failed`);
+            const message = e.stack || String(e);
+            console.error(indent(message));
+            console.log('');
+          }
+          console.log('');
         }
       }
     }
