@@ -2,6 +2,7 @@ module.exports = ($platform) => {
   const $rt = $platform.runtime;
   const { BigInteger } = require('bigdecimal');
   const im = require('immutable');
+  const { performance } = require('perf_hooks');
 
   $rt.$module('purr.intrinsics.primitives', {}, ($self) => {
     $self.put('bool_eq', (a, b) => a === b);
@@ -21,6 +22,12 @@ module.exports = ($platform) => {
     $self.put('int_gt', (a, b) => a.value.compareTo(b.value) > 0);
     $self.put('int_lte', (a, b) => a.value.compareTo(b.value) <= 0);
     $self.put('int_gte', (a, b) => a.value.compareTo(b.value) >= 0);
+
+    // FIXME: move these to float, but we need BigRational first
+    $self.put('dec_eq', (a, b) => a === b);
+    $self.put('dec_add', (a, b) => a + b);
+    $self.put('dec_sub', (a, b) => a - b);
+    $self.put('dec_mul', (a, b) => a * b);
     
 
     $self.put('text_eq', (a, b) => a.normalize() === b.normalize());
@@ -50,6 +57,40 @@ module.exports = ($platform) => {
     $self.put('show', (a) => $rt.show(a));
     $self.put('indent', (n, a) => a.split(/\r\n|\r|\n/).map(x => `${" ".repeat(n)}${x}`).join('\n'));
     $self.put('panic', (e) => { throw new Error(e) });
+    $self.put('time', (desc, fn, n) => {
+      const times = n.value.floatValue();
+      const x = new Array(times);
+      const timed = () => {
+        for (var i = 0; i < times; ++i) {
+          x[i] = fn();
+        }
+      };
+
+      performance.mark('warmup start');
+      timed();
+      performance.mark('warmup end');
+      performance.mark('hot start');
+      timed();
+      performance.mark('hot end');
+      
+      performance.measure('warmup', 'warmup start', 'warmup end');
+      performance.measure('hot', 'hot start', 'hot end');
+      performance.measure('total', 'warmup start', 'hot end');
+      
+      const warmupTime = performance.getEntriesByName('warmup')[0];
+      const hotTime = performance.getEntriesByName('hot')[0];
+      const totalTime = performance.getEntriesByName('total')[0];
+
+      console.log('-', desc);
+      console.log('  |');
+      console.log('  | Warmup time:', `${warmupTime.duration}ms`, `(${warmupTime.duration / 100} median)`);
+      console.log('  | Hot time:',    `${hotTime.duration}ms`, `(${hotTime.duration / 100} median)`);
+      console.log('  | Total time:',  `${totalTime.duration}ms`, `(${totalTime.duration / 200} median)`);
+      console.log('');
+      
+      performance.clearMarks();
+      performance.clearMeasures();
+    });
 
     $rt.$public($self, Object.keys($self.getScope().bindings));
   });

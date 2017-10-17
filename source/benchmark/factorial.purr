@@ -1,0 +1,33 @@
+language purr.core
+
+module benchmark.factorial
+  provides { factorial }
+  uses purr.numeric.integer { Integer, _ - _, _ + _, _ * _, _ === _ }
+  uses purr.numeric.decimal { Decimal, _ - _, _ + _, _ * _, _ === _ }
+  uses purr.testing.benchmark { _ time: _ repeat: _ } for benchmarking
+
+  define n factorial =
+    match n
+      case 0 do 1
+      case 1 do 1
+      case _ do (n - 1) factorial * n
+  where
+    assert 5 factorial === 120
+
+  define n factorial_float =
+    match n
+      case 0.0 do 1.0
+      case 1.0 do 1.0
+      case _ do (n - 1.0) factorial_float * n
+  where
+    assert 5.0 factorial_float === 120.0
+
+  % benchmark
+  define factorial_int = {
+    "factorial" time: { 30 factorial } repeat: 100
+  }
+
+  % benchmark
+  define factorial_float = {
+    "factorial (float)" time: { 30.0 factorial_float } repeat: 100
+  }

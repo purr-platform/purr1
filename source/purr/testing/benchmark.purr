@@ -1,0 +1,7 @@
+language purr.core
+
+module purr.testing.benchmark
+  provides { _ time: _ repeat: _ }
+  uses purr.intrinsics.primitives { time }
+
+  define desc time: fn repeat: n = time(desc, fn, n)

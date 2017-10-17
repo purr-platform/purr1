@@ -1,8 +1,8 @@
 const argv = require('optimist')
-  .usage('Usage: $0 [--root <dir>] (--run <id> | --test [id])')
+  .usage('Usage: $0 [--root <dir>] (--run <id> | --test [id] | --benchmark [id])')
   .argv;
 
-if ((typeof argv.run !== 'string') && !argv.test) {
+if ((typeof argv.run !== 'string') && !argv.test && !argv.benchmark) {
   throw new Error(`Needs to provide a test or run option`);
 }
 
@@ -84,6 +84,19 @@ if (argv.run) {
 
   if (failures.length > 0) {
     process.exit(1);
+  }
+} else if (argv.benchmark) {
+  const doBench = (m) => typeof argv.benchmark === 'string' ? m.id === argv.benchmark : true;
+  for (const m of world.modules.values()) {
+    if (doBench(m)) {
+      console.log(`\nRunning benchmarks for ${m.id}`);
+      console.log('='.repeat(23 + m.id.length));
+      for (const [k, v] of Object.entries(m.scope.bindings)) {
+        if (v.$annotations && v.$annotations.get('benchmark')) {
+          v.value();
+        }
+      }
+    }
   }
 } else {
   throw new Error(`No action`);
