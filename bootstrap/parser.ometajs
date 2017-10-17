@@ -159,7 +159,7 @@ ometa PurrParser {
 
 
   // ---- Values
-  Values = Bool | Int32 | Dec64 | Text | Vector | Closure,
+  Values = Bool | Dec64 | Int32 | Text | Vector | Closure,
 
   Bool  = kw('true')  -> ['bool', 'true'] 
         | kw('false') -> ['bool', 'false'],
@@ -206,7 +206,7 @@ ometa PurrParser {
           | SimplePattern,
 
   SimplePattern = kw('any')                                     -> ['patt_any']
-                | (Bool | Int32 | Dec64 | Text):v               -> ['patt_eq', v]
+                | (Bool | Dec64 | Int32 | Text):v               -> ['patt_eq', v]
                 | Primary:a ws '{' ws fieldPattern:fs ws '}'    -> ['patt_unapply', a, fs]
                 | Primary:a ws '{' ws '}'                       -> ['patt_unapply', a, []]
                 | Primary:a ws '.' ws name:n ~':'               -> ['patt_unvar', a, n, []]
