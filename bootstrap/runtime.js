@@ -403,7 +403,7 @@ class Multimethod {
 
     for (const branch of this.branches) {
       const [meth, branchSpec] = branch.specificityFor(args);
-      if (branchSpec > specificity) {
+      if (meth != null && branchSpec > specificity) {
         method = meth;
         specificity = branchSpec;
       }
@@ -434,7 +434,7 @@ class MultimethodBranch {
         if (p().hasInstance(arg)) {
           result += 1;
         } else {
-          return -1;
+          return [null, -1];
         }
       }
       index += 1;
@@ -450,11 +450,13 @@ class MultimethodImport {
   }
 
   invoke(...args) {
-    return this.method.value.invoke(...args);
+    const val = this.method.value;
+    return val.invoke(...args);
   }
 
   specificityFor(args) {
-    return this.method.value.findBranch(args);
+    const val = this.method.value;
+    return val.findBranch(args);
   }
 }
 
