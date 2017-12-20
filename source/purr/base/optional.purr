@@ -16,7 +16,6 @@ module purr.base.optional
   #: Transforms the value inside an Optional.
   define (x is Optional) map: transformation =
     match x
-      case 1 do 1
       case Optional.nothing      do Optional.nothing
       case Optional.some: value  do Optional.some: transformation(value)
   where
