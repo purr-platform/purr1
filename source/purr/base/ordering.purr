@@ -1,9 +1,0 @@
-language purr.core
-
-module purr.base.ordering
-  provides { Ordering }
-
-  union Ordering
-    | less_than
-    | equal
-    | greater_than
