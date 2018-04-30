@@ -7,6 +7,7 @@
 Purr is a multi-language programming platform, primarily designed for teaching programming.
 
 * [Goals and Overview](docs/overview.md)
+* [Design/Architecture](docs/design.md)
 
 ## Licence
 
