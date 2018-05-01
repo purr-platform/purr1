@@ -10,7 +10,7 @@ Here are some of the core goals of Purr:
 * Extensibility (modules + constraint linking);
 * Controlled and extensible effects (effect handlers);
 * Reducing learning barriers for people who don't speak English (structural IDE with live translation by language annotations);
-* Safer programming, with a reduced burden of proofs (type inference + gradual typing, strong checking)
+* Safer programming, with a reduced burden of proofs (OCS, type inference + gradual typing, strong checking, IFC?)
 
 ## Purr for teaching programming
 
