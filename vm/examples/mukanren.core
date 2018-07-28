@@ -1,0 +1,35 @@
+(module mukanren
+
+  (union Term
+    (Var id)
+    (Pair left right)
+    (Int value))
+
+  (union Stream
+    (Cons head tail)
+    (Empty))
+
+  (union Option
+    (Some value)
+    (None))
+
+  (record Context state counter)
+
+  (define association-list:at: (key stream)
+    (match stream
+      ((variant Stream Empty) () 
+        (make-variant Option None))
+
+      ((variant Stream Cons) (head tail)
+        (match head
+          ((tuple 2) (other-key value)
+            (if (invoke = key other-key)
+              (make-variant Option Some value)
+              (invoke association-list:at: key tail)))))))
+
+  (define walk:state: (term state)
+    (match term
+      ()))
+
+
+)

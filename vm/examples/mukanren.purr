@@ -1,0 +1,97 @@
+% language: purr.core
+
+module mukanren where
+
+union Term
+  case Var: id
+  case Pair: value With: rest
+  case Int: value
+end
+
+union Stream
+  case Pair: value With: rest
+  case Delay: thunk
+  case Empty
+end
+
+union Optional
+  case Some: value
+  case None
+end
+
+record Context { state, counter }
+
+
+define stream at: key as
+  match stream
+    case Stream.Empty then 
+      Optional.None
+
+    case Stream.Pair: [other_key, value] With: tail then
+      if key === other_key then
+        Optional.Some: value
+      else
+        Optional.None
+
+    case Stream.Delay: thunk then
+      Optional.None
+  end
+end
+
+define walk: term with_state: state as
+  match term
+    case Term.Var: id then
+      match state at: id
+        case Optional.Some: matched_term then
+          walk: matched_term with_state: state
+        
+        case Optional.None then
+          term
+
+    otherwise
+      term
+  end
+end
+
+define state extend_with_key: key for: term as
+  Stream.Pair: [key, term] With: state
+end
+
+define unify: left with: right using: state as
+  match [walk: left with_state: state, walk: right with_state: state]
+    case [Term.Var: l, Term.Var: r] when l = r then 
+      Optional.Some: state
+
+    case [Term.Var: l, anything] then 
+      Optional.Some: (state extend_with_key: l for: right)
+
+    case [anything, Term.Var: r] then
+      Optional.Some: (state extend_with_key: r for: left)
+
+    case [Term.Pair: l0 With: l1, Term.Pair: r0 With: r1] then
+      match unify: l0 with: r0 using: state
+        case Optional.Some: new_state then unify: l1 with: r1 using: new_state
+        case Optional.None then Optional.None
+      end
+
+    case [Term.Int: l, Term.Int: r] then
+      if l = r then 
+        Optional.Some: state 
+      else 
+        Optional.None
+
+    otherwise
+      Optional.None
+  end
+end
+
+define left equal: right as
+  (context) =>
+    match unify: left with: right using: context.state 
+      case Optional.Some: state then
+        unit: Context { state: state, counter: context.counter }
+
+      case Optional.None then
+        Stream.Empty
+    end
+end
