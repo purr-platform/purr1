@@ -1,5 +1,5 @@
 import { Value } from "./values";
-import { Module } from "./module";
+import { Module } from "./world";
 
 export interface Environment {
   lookup(name: string): Value | null;

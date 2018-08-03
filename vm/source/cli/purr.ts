@@ -1,17 +1,29 @@
 import * as yargs from "yargs";
 import * as FS from "fs";
 import * as Path from "path";
-import { parse } from "../parse";
+import { parse, compile } from "../languages/purr";
 import { VM } from "../vm";
-const argv = yargs.usage("purr <file> [--ast]").boolean("ast").argv;
+import { World } from "../runtime";
+const argv = yargs.usage("purr <directory> <module-id>").boolean("ast").argv;
 
-const source = FS.readFileSync(argv._[0], "utf8");
-const ast = parse(source);
-
-if (argv.ast) {
-  // TODO: implement ast serialisation
-  console.log(ast);
-} else {
-  const vm = new VM(ast);
-  console.log(vm.run("main", []));
+function read(directory: string) {
+  return (name: string) => {
+    return FS.readFileSync(Path.join(directory, name), "utf8");
+  };
 }
+
+const [directory, moduleId] = argv._;
+
+const world = new World();
+const files = FS.readdirSync(directory);
+const modules = files
+  .map(read(directory))
+  .map(parse)
+  .map(compile);
+
+for (const module of modules) {
+  module.attachTo(world);
+}
+
+const vm = new VM(world);
+console.log(vm.run(moduleId, "main", []));

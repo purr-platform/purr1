@@ -1,4 +1,4 @@
-import { Value, RecordType, VariantType } from "./runtime/values";
+import { Value, RecordType, VariantType, Backtrack } from "./runtime/values";
 
 export type Expression =
   | If
@@ -54,7 +54,11 @@ export class Apply {
 
 export class Invoke {
   readonly tag = ExpressionTag.INVOKE;
-  constructor(readonly name: string, readonly args: Expression[]) {}
+  constructor(
+    readonly module: string,
+    readonly name: string,
+    readonly args: Expression[]
+  ) {}
 }
 
 export class Constant {
@@ -75,6 +79,7 @@ export class MakeTuple {
 export class MakeRecord {
   readonly tag = ExpressionTag.MAKE_RECORD;
   constructor(
+    readonly module: string,
     readonly name: string,
     readonly fields: string[],
     readonly values: Expression[]
@@ -84,6 +89,7 @@ export class MakeRecord {
 export class MakeVariant {
   readonly tag = ExpressionTag.MAKE_VARIANT;
   constructor(
+    readonly module: string,
     readonly name: string,
     readonly variant: string,
     readonly values: Expression[]
@@ -108,13 +114,14 @@ export class Match {
 export class MatchCase {
   constructor(
     readonly pattern: Pattern,
-    readonly bindings: string[],
+    readonly guard: Expression,
     readonly expression: Expression
   ) {}
 }
 
 export type Pattern =
   | PatternAny
+  | PatternBind
   | PatternEqual
   | PatternTuple
   | PatternRecord
@@ -122,6 +129,7 @@ export type Pattern =
 
 export enum PatternTag {
   ANY,
+  BIND,
   EQUAL,
   TUPLE,
   RECORD,
@@ -137,17 +145,31 @@ export class PatternEqual {
   constructor(readonly value: Value) {}
 }
 
+export class PatternBind {
+  readonly tag = PatternTag.BIND;
+  constructor(readonly name: string) {}
+}
+
 export class PatternTuple {
   readonly tag = PatternTag.TUPLE;
-  constructor(readonly arity: number) {}
+  constructor(readonly patterns: Pattern[]) {}
 }
 
 export class PatternRecord {
   readonly tag = PatternTag.RECORD;
-  constructor(readonly type: string, readonly fields: string[]) {}
+  constructor(
+    readonly module: string,
+    readonly type: string,
+    readonly patterns: { field: string; pattern: Pattern }[]
+  ) {}
 }
 
 export class PatternVariant {
   readonly tag = PatternTag.VARIANT;
-  constructor(readonly type: string, readonly variant: string) {}
+  constructor(
+    readonly module: string,
+    readonly type: string,
+    readonly variant: string,
+    readonly patterns: Pattern[]
+  ) {}
 }

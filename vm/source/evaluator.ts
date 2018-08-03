@@ -8,7 +8,8 @@ import {
   assertUnionType,
   assertStructure,
   equalsPrimitives,
-  assertTuple
+  assertTuple,
+  assertBool
 } from "./runtime/primitives";
 import {
   Value,
@@ -46,12 +47,13 @@ export function evaluate(node: Expression, environment: Environment): Value {
     }
 
     case ExpressionTag.INVOKE: {
-      const callee = environment.module.lookupFunction(node.name);
+      const module = resolveModule(environment, node.module);
+      const callee = module.lookupFunction(node.name);
       const args = node.args.map(x => evaluate(x, environment));
       if (callee == null) {
         throw new Error(`No function ${node.name} defined`);
       }
-      return applyModuleFunction(environment.module, callee, args);
+      return applyModuleFunction(module, callee, args);
     }
 
     case ExpressionTag.CONSTANT: {
@@ -68,17 +70,15 @@ export function evaluate(node: Expression, environment: Environment): Value {
     }
 
     case ExpressionTag.MAKE_RECORD: {
-      const recordType = assertRecordType(
-        environment.module.lookupType(node.name)
-      );
+      const module = resolveModule(environment, node.module);
+      const recordType = assertRecordType(module.lookupType(node.name));
       const values = node.values.map(x => evaluate(x, environment));
       return recordType.makeInstance(node.fields, values);
     }
 
     case ExpressionTag.MAKE_VARIANT: {
-      const unionType = assertUnionType(
-        environment.module.lookupType(node.name)
-      );
+      const module = resolveModule(environment, node.module);
+      const unionType = assertUnionType(module.lookupType(node.name));
       const variantType = unionType.variantWithName(node.variant);
       const values = node.values.map(x => evaluate(x, environment));
       return unionType.makeInstance(variantType, values);
@@ -103,20 +103,14 @@ export function evaluate(node: Expression, environment: Environment): Value {
       for (const matchCase of node.cases) {
         const match = matchPattern(matchCase.pattern, value, environment);
         if (match != null) {
-          if (match.length !== matchCase.bindings.length) {
-            throw new TypeError(
-              `Incorrect number of bindings for patterns (${
-                matchCase.bindings
-              } has ${
-                matchCase.bindings.length
-              } bindings, but the match resulted in ${match.length} values)`
-            );
-          }
           const newEnvironment = LexicalEnvironment.extend(environment, {});
-          for (let i = 0; i < matchCase.bindings.length; ++i) {
-            newEnvironment.define(matchCase.bindings[i], match[i]);
+          for (const [key, value] of Object.entries(match)) {
+            newEnvironment.define(key, value);
           }
-          return evaluate(matchCase.expression, newEnvironment);
+          const guard = evaluate(matchCase.guard, newEnvironment);
+          if (isTrue(guard)) {
+            return evaluate(matchCase.expression, newEnvironment);
+          }
         }
       }
       throw new TypeError(`${value} was not matched by any patterns.`);
@@ -175,47 +169,92 @@ export function applyCallable(callable: Callable, args: Value[]) {
   }
 }
 
+type Match = { [key: string]: Value };
 function matchPattern(
   pattern: Pattern,
   value: Value,
   environment: Environment
-) {
+): Match | null {
+  function merge(matches: (Match | null)[]) {
+    return matches.reduce(
+      (a, b) => {
+        if (b == null) {
+          return null;
+        } else {
+          return Object.assign(a, b);
+        }
+      },
+      {} as Match
+    );
+  }
+
   switch (pattern.tag) {
     case PatternTag.ANY:
-      return [value];
+      return {};
+
+    case PatternTag.BIND:
+      return { [pattern.name]: value };
 
     case PatternTag.EQUAL:
       if (equalsPrimitives(value, pattern.value)) {
-        return [value];
+        return {};
       } else {
         return null;
       }
 
     case PatternTag.TUPLE: {
       const tuple = assertTuple(value);
-      if (pattern.arity === tuple.arity) {
-        return tuple.value;
-      } else {
-        return null;
-      }
+      return merge(
+        pattern.patterns.map((p, i) =>
+          matchPattern(p, tuple.value[i], environment)
+        )
+      );
     }
 
     case PatternTag.RECORD: {
-      const recordType = assertRecordType(
-        environment.module.lookupType(pattern.type)
+      const module = resolveModule(environment, pattern.module);
+      const recordType = assertRecordType(module.lookupType(pattern.type));
+      const values = recordType.extract(
+        pattern.patterns.map(x => x.field),
+        value
       );
-      return recordType.extract(pattern.fields, value);
+      if (values == null) {
+        return null;
+      }
+
+      return merge(
+        pattern.patterns.map((x, i) =>
+          matchPattern(x.pattern, values[i], environment)
+        )
+      );
     }
 
     case PatternTag.VARIANT: {
-      const unionType = assertUnionType(
-        environment.module.lookupType(pattern.type)
-      );
+      const module = resolveModule(environment, pattern.module);
+      const unionType = assertUnionType(module.lookupType(pattern.type));
       const variantType = unionType.variantWithName(pattern.variant);
-      return unionType.extract(variantType, value);
+
+      const values = unionType.extract(variantType, value);
+      if (values == null) {
+        return null;
+      } else {
+        return merge(
+          pattern.patterns.map((p, i) =>
+            matchPattern(p, values[i], environment)
+          )
+        );
+      }
     }
 
     default:
       throw unmatched(pattern);
+  }
+}
+
+function resolveModule(environment: Environment, name: string) {
+  if (name === "self") {
+    return environment.module;
+  } else {
+    return environment.module.getImport(name);
   }
 }

@@ -86,12 +86,12 @@ define unify: left with: right using: state as
 end
 
 define left equal: right as
-  (context) =>
-    match unify: left with: right using: context.state 
-      case Optional.Some: state then
-        unit: Context { state: state, counter: context.counter }
+  (| context in match unify: left with: right using: context.state 
+                  case Optional.Some: state then
+                    unit: Context{ state: state, counter: context.counter }
 
-      case Optional.None then
-        Stream.Empty
-    end
+                  case Optional.None then
+                    Stream.Empty
+                end
+  |)
 end

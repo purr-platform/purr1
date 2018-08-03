@@ -1,16 +1,16 @@
-import { Module } from "./runtime/module";
+import { World } from "./runtime/world";
 import { Value } from "./runtime/values";
-import { assertCallable } from "./runtime";
-import { applyCallable, applyModuleFunction } from "./evaluator";
+import { applyModuleFunction } from "./evaluator";
 
 export class VM {
-  constructor(readonly module: Module) {}
+  constructor(readonly world: World) {}
 
-  run(entrypoint: string, args: Value[]) {
-    const maybeFn = this.module.lookupFunction(entrypoint);
+  run(moduleId: string, entrypoint: string, args: Value[]) {
+    const module = this.world.module(moduleId);
+    const maybeFn = module.lookupFunction(entrypoint);
     if (maybeFn == null) {
       throw new Error(`No function ${entrypoint} defined in module.`);
     }
-    return applyModuleFunction(this.module, maybeFn, args);
+    return applyModuleFunction(module, maybeFn, args);
   }
 }

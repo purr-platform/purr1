@@ -1,0 +1,300 @@
+Purr {
+  Module
+    = module QualifiedId where Declaration*
+
+  QualifiedId 
+    = NonemptyListOf<identifier, ".">
+
+  Declaration
+    = FunctionDefinition
+    | RecordDefinition
+    | UnionDefinition
+    | Import
+
+  Import
+    = use QualifiedId as Name     -- aliasing
+
+  RecordDefinition
+    = record Name "{" NonemptyListOf<Name, ","> "}"
+
+  UnionDefinition
+    = union Name VariantDefinition+ end
+
+  VariantDefinition
+    = case KeywordPair+   -- keyword
+    | case Name           -- nullary
+
+  FunctionDefinition
+    = define FunctionSignature as Expression end
+
+  FunctionSignature
+    = Name KeywordPair+         -- keyword
+    | KeywordPair+              -- leading_keyword
+    | not Name                  -- negation
+    | Name operator Name        -- binary
+    | Name Name                 -- unary
+    | Name                      -- nullary
+    
+  KeywordPair 
+    = keyword Name
+
+  Expression
+    = let Name "=" Expression in Expression           -- let
+    | if Expression then Expression else Expression   -- if
+    | PipeExpression
+
+  PipeExpression
+    = PipeExpression "|>" PipeExpression    -- pipe
+    | KeywordCall
+
+  KeywordCall
+    = MaybeQualified<KeywordExpression> KeywordExpression*
+      -- leading_keyword
+    | OrExpression MaybeQualified<KeywordExpression> KeywordExpression*
+      -- keyword
+    | OrExpression
+
+  KeywordExpression
+    = keyword OrExpression
+
+  Qualified<rule>
+    = Name "'" rule     -- named
+    | self "'" rule     -- self
+
+  MaybeQualified<rule>
+    = Qualified<rule>
+    | rule              -- unqualified
+
+  OrExpression
+    = OrExpression MaybeQualified<or> AndExpression  -- or
+    | AndExpression
+
+  AndExpression
+    = AndExpression MaybeQualified<and> NotExpression  -- and
+    | NotExpression
+
+  NotExpression
+    = MaybeQualified<not> EqualityExpression    -- not
+    | EqualityExpression
+
+  EqualityExpression
+    = RelationalExpression MaybeQualified<"==="> RelationalExpression   
+      -- equal
+    | RelationalExpression MaybeQualified<"=/="> RelationalExpression   
+      -- not_equal
+    | RelationalExpression
+
+  RelationalExpression
+    = AddExpression MaybeQualified<"<="> AddExpression
+      -- lte
+    | AddExpression MaybeQualified<"<"> AddExpression
+      -- lt
+    | AddExpression MaybeQualified<">="> AddExpression
+      -- gte
+    | AddExpression MaybeQualified<">"> AddExpression
+      -- gt
+    | AddExpression
+
+  AddExpression
+    = AddExpression MaybeQualified<"+"> ~symbol  MultiplyExpression 
+      -- plus
+    | AddExpression MaybeQualified<"-"> ~symbol MultiplyExpression 
+      -- subtract
+    | MultiplyExpression
+
+  MultiplyExpression
+    = MultiplyExpression MaybeQualified<"*"> ~symbol PowerExpression 
+      -- multiply
+    | MultiplyExpression MaybeQualified<"/"> ~symbol PowerExpression 
+      -- divide
+    | PowerExpression
+
+  PowerExpression
+    = PowerExpression MaybeQualified<"**"> UnaryExpression -- power
+    | UnaryExpression
+
+  UnaryExpression
+    = UnaryExpression MaybeQualified<Name>  -- call
+    | PostfixExpression
+
+  PostfixExpression
+    = PostfixExpression "(" ListOf<Expression, ","> ")"   -- call
+    | PrimaryExpression
+
+  PrimaryExpression
+    = MatchExpression
+    | VariantExpression
+    | RecordExpression
+    | Name "'" Name         -- external_load
+    | self "'" Name         -- external_load_self
+    | Name                  -- load
+    | Boolean
+    | Number
+    | Text
+    | Tuple
+    | Lambda
+    | "(" Expression ")"    -- group
+
+  VariantExpression
+    = MaybeQualified<Name> "." KeywordExpression+   -- keyword
+    | MaybeQualified<Name> "." Name                 -- nullary
+
+  RecordExpression
+    = MaybeQualified<Name> "{" ListOf<RecordAssignment, ","> "}"
+
+  RecordAssignment
+    = Name "=" Expression
+
+  MatchExpression
+    = match Expression MatchCase+ end
+
+  MatchCase
+    = case Pattern when Expression then Expression    -- guarded
+    | case Pattern then Expression                    -- unguarded
+    | otherwise Expression                            -- default
+
+  Pattern
+    = VariantKeywordPattern
+  
+  VariantKeywordPattern
+    = MaybeQualified<Name> "." KeywordPattern+    -- keyword
+    | PrimaryPattern
+
+  KeywordPattern
+    = keyword PrimaryPattern
+
+  PrimaryPattern
+    = MaybeQualified<Name> "." Name                           -- nullary_variant
+    | MaybeQualified<Name> "{" ListOf<FieldPattern, ","> "}"  -- record
+    | "[" ListOf<Pattern, ","> "]"                            -- tuple
+    | Name                                                    -- bind
+    | (Number | Text | Boolean)                               -- literal
+    | anything                                                -- wildcard
+    | "(" Pattern ")"                                         -- group
+
+  FieldPattern
+    = Name "=" Pattern   -- aliasing
+    | Name               -- implicit_binding
+
+  Name
+    = ~reserved identifier ~":"
+
+  //---- Values
+  Boolean
+    = true    -- true
+    | false   -- false
+
+  Number
+    = decimal   -- decimal
+    | integer   -- integer
+
+  Text 
+    = text_raw    -- raw
+    | text_double -- double
+
+  Tuple
+    = "[" ListOf<Expression, ","> "]"
+
+  Lambda
+    = "(|" ListOf<Name, ","> in Expression "|)"   -- non_nullary
+    | "(|" Expression "|)"                        -- nullary
+
+  //---- Lexical rules
+  id_start = letter
+  id_rest  = alnum | "_"
+  identifier = id_start id_rest*
+  keyword = identifier ":" 
+
+  eof = ~any
+
+  octal_digit = "0" .. "7" | "_"
+  hex_digit = "0" .. "9" | "a" .. "f" | "A" .. "F" | "_"
+  bin_digit = "0" | "1" | "_"
+  decimal_digit = "0" .. "9" | "_"
+
+  integral_number 
+    = "0o" octal_digit+       -- octal
+    | "0x" hex_digit+         -- hex
+    | "0b" bin_digit+         -- binary
+    | decimal_digit+          -- decimal
+
+  integer
+    = "-" integral_number   -- negative
+    | "+" integral_number   -- positive
+    | integral_number       -- unsigned
+
+  decimal
+    = "-" decimal_digit+ "." decimal_digit+ -- negative
+    | "+" decimal_digit+ "." decimal_digit+ -- positive
+    | decimal_digit+ "." decimal_digit+     -- unsigned
+
+  text_raw    = "\"\"\"" raw_character* "\"\"\""
+  text_double = "\"" string_character* "\""
+  
+  raw_character 
+    = ~"\"\"\"" any
+
+  string_character
+    = ~("\"" | "\\") any    -- non_escaped
+    | "\\" escape_sequence  -- escaped
+
+  escape_sequence
+    = "b"     -- backspace
+    | "f"     -- form_feed
+    | "n"     -- newline
+    | "r"     -- return
+    | "t"     -- tab
+    | "u" hex_digit hex_digit hex_digit hex_digit   -- unicode
+
+  and       = "and" ~id_rest
+  anything  = "anything" ~id_rest
+  as        = "as" ~id_rest
+  case      = "case" ~id_rest
+  define    = "define" ~id_rest
+  else      = "else" ~id_rest
+  end      := "end" ~id_rest
+  false     = "false" ~id_rest
+  if        = "if" ~id_rest
+  in        = "in" ~id_rest
+  let       = "let" ~id_rest
+  match     = "match" ~id_rest
+  module    = "module" ~id_rest
+  not       = "not" ~id_rest
+  or        = "or" ~id_rest
+  otherwise = "otherwise" ~id_rest
+  record    = "record" ~id_rest
+  self      = "self" ~id_rest
+  then      = "then" ~id_rest
+  true      = "true" ~id_rest
+  union     = "union" ~id_rest
+  use       = "use" ~id_rest
+  when      = "when" ~id_rest
+  where     = "where" ~id_rest
+
+  symbol
+    = "<" | ">" | "=" | "/" | "*" | "|" | "&" | "+" | "-"
+
+  operator
+    = "<=" | "<-" | "<" 
+    | ">=" | ">"
+    | "=>" | "===" | "=/="
+    | "-"
+    | "++" | "+"
+    | "**" | "*"
+    | "/"
+    | "|"
+    | "&"
+    | and | or
+
+  reserved 
+    = and | anything | as | case | define | else | end 
+    | false | if | in | let | match | module 
+    | not | or | otherwise | record | self | then | true | union 
+    | use | when | where
+
+  space
+    += comment
+
+  comment
+    = "#" (~"\n" any)*
+}

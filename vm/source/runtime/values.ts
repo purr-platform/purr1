@@ -14,7 +14,8 @@ export enum TypeTag {
   RECORD,
   VARIANT,
   LAMBDA,
-  PRIMITIVE_PROCEDURE
+  PRIMITIVE_PROCEDURE,
+  BACKTRACK
 }
 
 export class RecordType {
@@ -109,7 +110,8 @@ export type Value =
   | Record
   | Variant
   | Lambda
-  | PrimitiveProcedure;
+  | PrimitiveProcedure
+  | Backtrack;
 
 export class Unit {
   readonly tag = TypeTag.UNIT;
@@ -199,3 +201,7 @@ export class PrimitiveProcedure {
 }
 
 export type Callable = Lambda | PrimitiveProcedure;
+
+export class Backtrack {
+  readonly tag = TypeTag.BACKTRACK;
+}
