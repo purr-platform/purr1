@@ -1,2 +1,0 @@
-(module hello
-  (define main () "Hello, World"))

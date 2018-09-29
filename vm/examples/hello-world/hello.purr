@@ -1,9 +1,0 @@
-module examples.hello_world where
-
-use examples.greeting as greet
-
-define main as 
-  match greet'hello
-    case greet'Greeting { who, what } then [what, who]
-  end
-end

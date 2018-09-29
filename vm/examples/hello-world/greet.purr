@@ -1,5 +1,0 @@
-module examples.greeting where
-
-record Greeting { who, what }
-
-define hello as Greeting { who = "warudo", what = "Hewwo" } end
