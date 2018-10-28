@@ -1,4 +1,6 @@
 node_modules/
 target/
 build/
-source/**/*.purr.js
+bin/
+obj/
+paket-files/
